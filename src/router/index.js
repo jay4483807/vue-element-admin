@@ -11,6 +11,7 @@ import componentsRouter from './modules/components'
 import chartsRouter from './modules/charts'
 import tableRouter from './modules/table'
 import nestedRouter from './modules/nested'
+import { panRouter, panRouterArr } from './modules/pan'
 
 /**
  * Note: sub-menu only appear when route children.length >= 1
@@ -32,6 +33,8 @@ import nestedRouter from './modules/nested'
     activeMenu: '/example/list'  if set path, the sidebar will highlight the path you set
   }
  */
+
+const hideDemo = true
 
 /**
  * constantRoutes
@@ -85,13 +88,14 @@ export const constantRoutes = [
   },
   {
     path: '/documentation',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
         path: 'index',
         component: () => import('@/views/documentation/index'),
         name: 'Documentation',
-        meta: { title: 'documentation', icon: 'documentation', affix: true }
+        meta: { title: 'documentation', icon: 'documentation', affix: false }
       }
     ]
   },
@@ -99,6 +103,7 @@ export const constantRoutes = [
     path: '/guide',
     component: Layout,
     redirect: '/guide/index',
+    hidden: hideDemo,
     children: [
       {
         path: 'index',
@@ -133,6 +138,7 @@ export const asyncRoutes = [
     path: '/permission',
     component: Layout,
     redirect: '/permission/page',
+    hidden: hideDemo,
     alwaysShow: true, // will always show the root menu
     name: 'Permission',
     meta: {
@@ -173,6 +179,7 @@ export const asyncRoutes = [
 
   {
     path: '/icon',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
@@ -183,15 +190,18 @@ export const asyncRoutes = [
       }
     ]
   },
-
+  ...panRouterArr,
   /** when your routing map is too long, you can split it into small modules **/
-  componentsRouter,
-  chartsRouter,
-  nestedRouter,
-  tableRouter,
+  panRouter,
+
+  { ...componentsRouter, hidden: hideDemo },
+  { ...chartsRouter, hidden: hideDemo },
+  { ...nestedRouter, hidden: hideDemo },
+  { ...tableRouter, hidden: hideDemo },
 
   {
     path: '/example',
+    hidden: hideDemo,
     component: Layout,
     redirect: '/example/list',
     name: 'Example',
@@ -224,6 +234,7 @@ export const asyncRoutes = [
 
   {
     path: '/tab',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
@@ -237,6 +248,7 @@ export const asyncRoutes = [
 
   {
     path: '/error',
+    hidden: hideDemo,
     component: Layout,
     redirect: 'noRedirect',
     name: 'ErrorPages',
@@ -262,6 +274,7 @@ export const asyncRoutes = [
 
   {
     path: '/error-log',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
@@ -275,6 +288,7 @@ export const asyncRoutes = [
 
   {
     path: '/excel',
+    hidden: hideDemo,
     component: Layout,
     redirect: '/excel/export-excel',
     name: 'Excel',
@@ -312,6 +326,7 @@ export const asyncRoutes = [
 
   {
     path: '/zip',
+    hidden: hideDemo,
     component: Layout,
     redirect: '/zip/download',
     alwaysShow: true,
@@ -329,6 +344,7 @@ export const asyncRoutes = [
 
   {
     path: '/pdf',
+    hidden: hideDemo,
     component: Layout,
     redirect: '/pdf/index',
     children: [
@@ -348,6 +364,7 @@ export const asyncRoutes = [
 
   {
     path: '/theme',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
@@ -361,6 +378,7 @@ export const asyncRoutes = [
 
   {
     path: '/clipboard',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
@@ -374,6 +392,7 @@ export const asyncRoutes = [
 
   {
     path: '/i18n',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {
@@ -387,6 +406,7 @@ export const asyncRoutes = [
 
   {
     path: 'external-link',
+    hidden: hideDemo,
     component: Layout,
     children: [
       {

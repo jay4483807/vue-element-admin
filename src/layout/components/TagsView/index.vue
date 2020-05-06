@@ -7,10 +7,11 @@
         :key="tag.path"
         :class="isActive(tag)?'active':''"
         :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
-        tag="span"
+        tag="div"
         class="tags-view-item"
         @click.middle.native="!isAffix(tag)?closeSelectedTag(tag):''"
         @contextmenu.prevent.native="openMenu(tag,$event)"
+        @dblclick.native="dbclickTag"
       >
         {{ generateTitle(tag.title) }}
         <span v-if="!isAffix(tag)" class="el-icon-close" @click.prevent.stop="closeSelectedTag(tag)" />
@@ -29,6 +30,7 @@
 import ScrollPane from './ScrollPane'
 import { generateTitle } from '@/utils/i18n'
 import path from 'path'
+import screenfull from 'screenfull'
 
 export default {
   components: { ScrollPane },
@@ -191,6 +193,13 @@ export default {
     },
     closeMenu() {
       this.visible = false
+    },
+    dbclickTag() {
+      console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>dbclickTag')
+      if (!screenfull.enabled) {
+        return
+      }
+      screenfull.toggle()
     }
   }
 }
@@ -268,6 +277,11 @@ export default {
 //reset element css of el-icon-close
 .tags-view-wrapper {
   .tags-view-item {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+
     .el-icon-close {
       width: 16px;
       height: 16px;
