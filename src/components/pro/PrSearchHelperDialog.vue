@@ -72,7 +72,7 @@ export default {
     getList() {
       this.listLoading = true
       request({
-        url: '/pan/search-help/list.api',
+        url: '/vue-element-admin/search-help/list.api',
         params: this.listQuery
       }).then(response => {
         this.list = response.data.items

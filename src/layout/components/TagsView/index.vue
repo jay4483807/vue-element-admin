@@ -195,7 +195,6 @@ export default {
       this.visible = false
     },
     dbclickTag() {
-      console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>dbclickTag')
       if (!screenfull.enabled) {
         return
       }

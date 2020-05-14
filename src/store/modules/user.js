@@ -1,13 +1,16 @@
-import { login, logout, getInfo } from '@/api/user'
+import { login, panLogin, logout, getInfo } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import router, { resetRouter } from '@/router'
+import md5 from 'js-md5'
+import request from '@/utils/request'
 
 const state = {
   token: getToken(),
   name: '',
   avatar: '',
   introduction: '',
-  roles: []
+  roles: [],
+  userId: ''
 }
 
 const mutations = {
@@ -25,6 +28,9 @@ const mutations = {
   },
   SET_ROLES: (state, roles) => {
     state.roles = roles
+  },
+  SET_USER_ID: (state, userId) => {
+    state.userId = userId
   }
 }
 
@@ -44,38 +50,51 @@ const actions = {
     })
   },
 
-  // get user info
-  getInfo({ commit, state }) {
+  panLogin({ commit, state }, userInfo) {
+    const { username, password } = userInfo
     return new Promise((resolve, reject) => {
-      getInfo(state.token).then(response => {
-        const { data } = response
-
-        if (!data) {
-          reject('Verification failed, please Login again.')
-        }
-
-        const { roles, name, avatar, introduction } = data
-
-        // roles must be a non-empty array
-        if (!roles || roles.length <= 0) {
-          reject('getInfo: roles must be a non-null array!')
-        }
-
-        commit('SET_ROLES', roles)
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
-        commit('SET_INTRODUCTION', introduction)
-        resolve(data)
+      panLogin({ userName: username.trim(), passWord: md5(password).toUpperCase(), client: '800', languageIso: 'zh' }).then(response => {
+        console.log('登录成功', response)
+        resolve()
       }).catch(error => {
         reject(error)
       })
     })
   },
 
+  // get user info
+  async getInfo({ commit, state }) {
+    let res = await request({ url: '/vueController.spr?action=getPersonnelInfo', ignoreError: true })
+    if (res.type !== 'info') {
+      throw res
+    }
+    commit('SET_USER_ID', res.coustom.personnelinfo.USERID)
+    commit('SET_NAME', res.coustom.personnelinfo.PERSONNELNAME)
+
+    res = await request({ url: '/vueController.spr?action=getAuthMenu', data: {
+      userid: state.userId
+    }})
+    const { data } = await getInfo(state.token)
+    if (!data) { throw new Error('Verification failed, please Login again.') }
+    const { roles, name, avatar, introduction } = data
+
+    // roles must be a non-empty array
+    if (!roles || roles.length <= 0) {
+      throw new Error('getInfo: roles must be a non-null array!')
+    }
+
+    commit('SET_ROLES', roles)
+    commit('SET_NAME', name)
+    commit('SET_AVATAR', avatar)
+    commit('SET_INTRODUCTION', introduction)
+    return { ...data, menuData: res.coustom }
+  },
+
   // user logout
   logout({ commit, state, dispatch }) {
     return new Promise((resolve, reject) => {
       logout(state.token).then(() => {
+        commit('SET_USER_ID', '')
         commit('SET_TOKEN', '')
         commit('SET_ROLES', [])
         removeToken()
@@ -97,6 +116,7 @@ const actions = {
     return new Promise(resolve => {
       commit('SET_TOKEN', '')
       commit('SET_ROLES', [])
+      commit('SET_USER_ID', '')
       removeToken()
       resolve()
     })

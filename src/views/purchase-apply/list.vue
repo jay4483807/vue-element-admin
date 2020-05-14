@@ -22,7 +22,7 @@
       <el-button v-waves class="filter-item" type="success">导出申请单</el-button>
       <el-button v-waves class="filter-item" type="success">导出Excel</el-button>
     </div>
-    <el-table v-loading="listLoading" :data="list" header-cell-class-name="table-header" fit style="width: 100%" height="600">
+    <el-table v-if="config.gridColumns.length>0" v-loading="listLoading" :data="list" header-cell-class-name="table-header" fit style="width: 100%" height="600">
       <el-table-column type="selection" width="45" />
       <el-table-column v-slot="{row}" width="30" type="expand">
         <el-form label-position="left" inline class="table-expand">
@@ -43,20 +43,16 @@
           </el-form-item>
         </el-form>
       </el-table-column>
-      <el-table-column prop="purchaseapplyno" :show-overflow-tooltip="true" width="120" align="center" label="申请单号" />
-      <el-table-column prop="applydate" :show-overflow-tooltip="true" width="124px" align="center" label="申请日期" />
-      <el-table-column prop="processstate" :show-overflow-tooltip="true" width="120" align="center" label="流程状态" />
-      <el-table-column prop="bsart" align="center" :show-overflow-tooltip="true" label="采购申请凭证类型" />
-      <el-table-column prop="bsart_text" width="120" :show-overflow-tooltip="true" align="center" label="采购申请凭证类型名称" />
-      <el-table-column prop="bedat" width="124px" align="center" :show-overflow-tooltip="true" label="采购订单日期" />
-      <el-table-column prop="bukrs" :show-overflow-tooltip="true" align="center" label="公司代码" />
-      <el-table-column prop="status" :show-overflow-tooltip="true" align="center" label="状态" />
-      <el-table-column prop="purchasename" :show-overflow-tooltip="true" width="120" align="center" label="采购员名称" />
-      <el-table-column prop="assnetwr" :show-overflow-tooltip="true" width="120" align="center" label="评估净值" />
-      <el-table-column prop="creator" :show-overflow-tooltip="true" align="center" label="创建人" />
-      <el-table-column prop="createtime" :show-overflow-tooltip="true" width="120" align="center" label="创建日期" />
-      <el-table-column prop="lastmodifyer" :show-overflow-tooltip="true" align="center" label="最后修改者" />
-      <el-table-column prop="lastmodifytime" :show-overflow-tooltip="true" width="120" align="center" label="最后修改日期" />
+      <el-table-column
+        v-for="(col,index) of config.gridColumns"
+        :key="index"
+        :prop="col.prop"
+        :show-overflow-tooltip="true"
+        :min-width="col.width || ''"
+        align="center"
+        :label="col.label"
+        :formatter="col.formatter"
+      />
       <el-table-column v-slot="{row}" width="300" align="center" label="操作" fixed="right">
         <div class="el-button-group">
           <el-button type="primary" size="small">查看</el-button>
@@ -119,8 +115,10 @@
 <script>
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
 import { fetchList } from '@/api/purchase-apply'
+import { fetchGridMetadata } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
 import PrSearchHelperDialog from '@/components/pro/PrSearchHelperDialog'
+import { isBlank } from '@/utils'
 
 export default {
   name: 'PurchaseApplyList',
@@ -128,6 +126,8 @@ export default {
   directives: { waves },
   data() {
     return {
+      // 业务对象id
+      boId: '000000000500',
       list: null,
       total: 0,
       listLoading: true,
@@ -141,29 +141,88 @@ export default {
         applyDateStart: undefined,
         applyDateEnd: undefined,
         printed: undefined,
-        purchaseNo: undefined
+        purchaseNo: undefined,
+        whereSql: ''
       },
       dialogSearchMoreVisible: false,
-      dialogPurchaseUserSearchHelperVisible: false
+      dialogPurchaseUserSearchHelperVisible: false,
+      config: {
+        gridColumns: [],
+        // gridColumns: [
+        //   { 'label': '打印次数', 'prop': 'printnum', 'width': null, 'columnNo': '' },
+        //   { 'label': '是否已打印', 'prop': 'isprint', 'width': null, 'columnNo': '' },
+        //   { 'label': '流程状态', 'prop': 'processstate', 'width': 100, 'columnNo': '0001' },
+        //   { 'label': '申请单号', 'prop': 'purchaseapplyno', 'width': 100, 'columnNo': '0002' },
+        //   { 'label': '申请日期', 'prop': 'applydate', 'width': 100, 'columnNo': '0003' },
+        //   { 'label': '采购订单日期', 'prop': 'bedat', 'width': 100, 'columnNo': '0004' },
+        //   { 'label': '公司代码', 'prop': 'bukrs', 'width': 80, 'columnNo': '0005' },
+        //   { 'label': '状态', 'prop': 'status', 'width': 80, 'columnNo': '0005' },
+        //   { 'label': '采购组', 'prop': 'ekgrp', 'width': 80, 'columnNo': '0006' },
+        //   { 'label': '评估净值', 'prop': 'assnetwr', 'width': 80, 'columnNo': '0006' },
+        //   { 'label': '原因/用途', 'prop': 'memo', 'width': 255, 'columnNo': '0007' },
+        //   { 'label': '创建对象的人员名称', 'prop': 'creator', 'width': 90, 'columnNo': '0008' },
+        //   { 'label': '创建日期', 'prop': 'createtime', 'width': 150, 'columnNo': '0009' },
+        //   { 'label': '最后修改者', 'prop': 'lastmodifyer', 'width': 150, 'columnNo': '0010' },
+        //   { 'label': '最后修改日期', 'prop': 'lastmodifytime', 'width': 90, 'columnNo': '0011' }],
+        toolBarItems: []
+      }
     }
   },
   created() {
-    this.getList()
+    fetchGridMetadata(this.boId).then(columns => {
+      if (this.postConfigGridColumns) {
+        columns = this.postConfigGridColumns(columns)
+      }
+      console.log(JSON.stringify(columns))
+      this.config.gridColumns = columns
+    }).then(() => {
+      this.getList()
+    })
   },
   methods: {
+    // 对Grid的列表配置数据二次处理
+    postConfigGridColumns(columns) {
+      console.log('fetchGridMetadata:', columns)
+      return columns.filter(col => {
+        if (col.prop === 'purchaseapplyid' || isBlank(col.label)) return false
+        return true
+      }).map(col => {
+        if (col.prop === 'bedat' || col.prop === 'bsart') {
+          col.width = 100
+        } else if (col.prop === 'memo') {
+          col.label = '原因/用途'
+        } else if (col.prop === 'isprint') {
+          // 对列增加自定义处理
+          col.formatter = this.columnFormatter
+        }
+        col.width = Math.max(80, col.width)
+
+        return col
+      })
+    },
     getList() {
       this.listLoading = true
       fetchList(this.listQuery).then(response => {
         this.list = response.data.items
         this.total = response.data.total
         this.listLoading = false
+      }).catch(() => {
+        this.listLoading = false
       })
     },
+    columnFormatter(row, column, cellValue, index) {
+      if (cellValue === 'Y') {
+        return '是'
+      } else if (cellValue === 'N') {
+        return '否'
+      }
+      return cellValue
+    },
     clickEdit(id) {
-      this.$router.push('/pan/purchase-apply-edit/' + id)
+      this.$router.push('edit/' + id)
     },
     clickCreate() {
-      this.$router.push('/pan/purchase-apply-create')
+      this.$router.push('create')
     },
     queryOrderNo(queryString, cb) {
       const result = this.list.map((row) => { return { value: row.purchaseapplyno } }).filter(({ value }) => {

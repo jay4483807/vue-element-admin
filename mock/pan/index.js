@@ -17,14 +17,14 @@ function pageQuery(config, dataArr) {
 
 export default [
   {
-    url: '/pan/purchase-apply/list.api',
+    url: '/vue-element-admin/purchase-apply/list.api',
     type: 'get',
     response: config => {
       return pageQuery(config, purchaseApplyList)
     }
   },
   {
-    url: '/pan/purchase-apply/detail.api',
+    url: '/vue-element-admin/purchase-apply/detail.api',
     type: 'get',
     response: {
       code: 20000,
@@ -32,14 +32,14 @@ export default [
     }
   },
   {
-    url: '/pan/search-help/list.api',
-    type: 'get',
+    url: '/vue-element-admin/search-help/list.api',
+    type: 'post',
     response: config => {
       return pageQuery(config, searchHelpDialogList)
     }
   },
   {
-    url: '/pan/project/list.api',
+    url: '/vue-element-admin/project/list.api',
     type: 'get',
     response: config => {
       return pageQuery(config, projectList)

@@ -8,6 +8,14 @@ export function login(data) {
   })
 }
 
+export function panLogin(data) {
+  return request({
+    url: '/authManage/userLoginController.spr?action=login',
+    method: 'post',
+    data
+  })
+}
+
 export function getInfo(token) {
   return request({
     url: '/vue-element-admin/user/info',
@@ -18,7 +26,7 @@ export function getInfo(token) {
 
 export function logout() {
   return request({
-    url: '/vue-element-admin/user/logout',
+    url: '/authManage/userLoginController.spr?action=logout',
     method: 'post'
   })
 }
