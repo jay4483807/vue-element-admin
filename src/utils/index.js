@@ -345,9 +345,3 @@ export function removeClass(ele, cls) {
     ele.className = ele.className.replace(reg, ' ')
   }
 }
-
-// pan扩展
-
-export function isBlank(str) {
-  return str === null || str === undefined || str === '' || str.match(/^\s*$/)
-}

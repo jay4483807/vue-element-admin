@@ -152,6 +152,7 @@
 <script>
 import { fetchDetail, fetchProjectList } from '@/api/purchase-apply'
 import Sticky from '@/components/Sticky/index'
+import { fetchFormColumns } from '@/api/pan'
 
 const defaultForm = {
   // 是否急需
@@ -167,6 +168,10 @@ export default {
       default: false
     },
     id: {
+      type: String,
+      default: ''
+    },
+    boId: {
       type: String,
       default: ''
     }
@@ -191,13 +196,20 @@ export default {
       tagData: {
         project: [],
         attachment: []
+      },
+      config: {
+        formColumns: []
       }
     }
   },
   created() {
-    if (this.id) {
-      this.fetchData(this.id)
-    }
+    fetchFormColumns(this.boId).then(columns => {
+      this.config.formColumns = columns
+    }).then(() => {
+      if (this.id) {
+        this.fetchData(this.id)
+      }
+    })
 
     // Why need to make a copy of this.$route here?
     // Because if you enter this page and quickly switch tag, may be in the execution of the setTagsViewTitle function, this.$route is no longer pointing to the current page

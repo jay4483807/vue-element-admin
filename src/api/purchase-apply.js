@@ -22,10 +22,10 @@ export function fetchList(query) {
   })
 }
 
-export function fetchDetail(id) {
+export function fetchDetail(id, boId = '000000000500', userId = '1') {
   return request({
-    url: '/vue-element-admin/purchase-apply/detail.api',
-    params: { id }
+    url: '/vueController.spr?action=getBusinessObjectInfo&language=ZH',
+    params: { businessid: id, boid: boId, userid: userId }
   })
 }
 

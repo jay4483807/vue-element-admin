@@ -1,16 +1,23 @@
 <template>
   <div :class="{'hidden':hidden}" class="pagination-container">
-    <el-pagination
-      :background="background"
-      :current-page.sync="currentPage"
-      :page-size.sync="pageSize"
-      :layout="layout"
-      :page-sizes="pageSizes"
-      :total="total"
-      v-bind="$attrs"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-    />
+    <span v-show="showSelectedOnly" class="select">共{{ total }}条 已选{{ selectedSize }}条 <a @click="changeShowSelectedOnly">显示全部</a></span>
+    <div v-show="!showSelectedOnly">
+      <el-pagination
+        :background="background"
+        :current-page.sync="currentPage"
+        :page-size.sync="pageSize"
+        :layout="layout"
+        :page-sizes="pageSizes"
+        :total="total"
+        v-bind="$attrs"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      >
+        <span v-if="selectedSize!==undefined" class="select">
+          共{{ total }}条 已选<a v-if="selectedSizeClickable" @click="changeShowSelectedOnly"> {{ selectedSize }} </a><template v-else>{{ selectedSize }}</template>条
+        </span>
+      </el-pagination>
+    </div>
   </div>
 </template>
 
@@ -40,7 +47,7 @@ export default {
     },
     layout: {
       type: String,
-      default: 'total, sizes, prev, pager, next, jumper'
+      default: 'slot, sizes, prev, pager, next, jumper'
     },
     background: {
       type: Boolean,
@@ -51,6 +58,20 @@ export default {
       default: true
     },
     hidden: {
+      type: Boolean,
+      default: false
+    },
+    selectedSize: {
+      type: Number,
+      default: undefined
+    },
+    // 已选记录数是否可点击
+    selectedSizeClickable: {
+      type: Boolean,
+      default: false
+    },
+    // 是否只显示选中的记录
+    showSelectedOnly: {
       type: Boolean,
       default: false
     }
@@ -85,6 +106,9 @@ export default {
       if (this.autoScroll) {
         scrollTo(0, 800)
       }
+    },
+    changeShowSelectedOnly() {
+      this.$emit('changeShowSelectedOnly')
     }
   }
 }
@@ -97,5 +121,14 @@ export default {
 }
 .pagination-container.hidden {
   display: none;
+}
+  .pagination-container .select {
+    margin-right: 10px;
+    font-weight: normal;
+    color: #606266;
+  }
+
+.pagination-container .select a {
+  text-decoration: underline;
 }
 </style>

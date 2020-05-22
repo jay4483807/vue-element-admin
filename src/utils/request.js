@@ -7,7 +7,7 @@ import { getToken } from '@/utils/auth'
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
   withCredentials: true, // send cookies when cross-domain requests
-  timeout: 5000, // request timeout,
+  timeout: 30000, // request timeout,
   method: 'post',
   transformRequest: [function(data) {
     let ret = ''
@@ -72,7 +72,7 @@ service.interceptors.response.use(
     if (!response.config.ignoreError && (res.success !== undefined && !res.success || res.type !== undefined && res.type !== 'info')) {
       Message({
         message: res.message || 'Error',
-        type: 'error',
+        type: res.type || 'error',
         duration: 5 * 1000
       })
       if (res.type === 'nologin') {

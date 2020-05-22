@@ -18,39 +18,17 @@
           v-model="listQuery[item.prop]"
           type="date"
           class="filter-item"
-          :placeholder="item.label"
+          placeholder="选择日期"
         />
-        <el-date-picker
-          v-else-if="item.uiType===UI_TYPE.DATE_TIME"
-          :key="index"
-          v-model="listQuery[item.prop]"
-          type="datetime"
-          class="filter-item"
-          :placeholder="item.label"
-        />
-        <el-date-picker
-          v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
-          :key="index"
-          v-model="listQuery[item.prop]"
-          type="datetimerange"
-          class="filter-item"
-          :start-placeholder="item.label+'开始日期'"
-          range-separator="-"
-          :end-placeholder="item.label+'结束日期'"
-        />
-        <pr-search-helper
+        <el-input
           v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
           :key="index"
           v-model="listQuery[item.prop]"
           class="filter-item"
+          suffix-icon="el-icon-search"
           style="width: 200px;"
           :placeholder="item.label"
-          :multi-select="item.multiSelect"
-          :search-help-name="item.searchHelpName || ''"
-          :value-field="item.searchHelpValueField"
-          :display-field="item.searchHelpDisplayFiled"
-          :default-condition="item.defaultCondition"
-          :sort-columns="item.sortColumns"
+          @focus="openSearchHelper"
         />
         <el-select
           v-else-if="item.uiType===UI_TYPE.SELECT"
@@ -61,7 +39,7 @@
           class="filter-item"
           style="width: 200px;"
         >
-          <el-option v-for="opt of item.options" :key="opt.value" :label="opt.text" :value="opt.value" />
+          <el-option v-for="opt of item.options" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <el-input
           v-else
@@ -101,7 +79,7 @@
         :label="col.label"
         :formatter="col.formatter"
       />
-      <el-table-column v-if="config.gridActions.length>0" v-slot="{row}" :width="68*config.gridActions.length+60" align="center" label="操作" fixed="right">
+      <el-table-column v-slot="{row}" width="300" align="center" label="操作" fixed="right">
         <div class="el-button-group">
           <el-button
             v-for="(act,index) of config.gridActions"
@@ -125,21 +103,14 @@
         <el-form-item v-for="(item,index) of config.searchMoreItems" :key="index" :label="item.label">
           <el-date-picker v-if="item.uiType===UI_TYPE.DATE_RANGE" :key="index" v-model="listQuery[item.prop]" type="daterange" class="filter-item" start-placeholder="开始日期" range-separator="-" end-placeholder="结束日期" />
           <el-date-picker v-else-if="item.uiType===UI_TYPE.DATE" :key="index" v-model="listQuery[item.prop]" type="date" class="filter-item" placeholder="选择日期" />
-          <el-date-picker v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE" :key="index" v-model="listQuery[item.prop]" type="datetimerange" class="filter-item" start-placeholder="开始日期" range-separator="-" end-placeholder="结束日期" />
-          <el-date-picker v-else-if="item.uiType===UI_TYPE.DATE_TIME" :key="index" v-model="listQuery[item.prop]" type="datetime" class="filter-item" placeholder="选择日期" />
-          <pr-search-helper
-            v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
-            :key="index"
-            v-model="listQuery[item.prop]"
-            :search-help-name="item.searchHelpName || ''"
-            :value-field="item.searchHelpValueField"
-            :display-field="item.searchHelpDisplayFiled"
-            class="filter-item"
-          />
+          <el-input v-else-if="item.uiType===UI_TYPE.SEARCH_HELP" :key="index" v-model="listQuery[item.prop]" class="filter-item" suffix-icon="el-icon-search" @focus="openSearchHelper" />
           <el-select v-else-if="item.uiType===UI_TYPE.SELECT" :key="index" v-model="listQuery[item.prop]" clearable class="filter-item">
-            <el-option v-for="opt of item.options" :key="opt.value" :label="opt.text" :value="opt.value" />
+            <el-option v-for="opt of item.options" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
           <el-input v-else :key="index" v-model="listQuery[item.prop]" />
+        </el-form-item>
+        <el-form-item label="采购凭证编号">
+          <el-input v-model="listQuery.purchaseNo" class="filter-item" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -147,27 +118,29 @@
         <el-button type="primary" @click="getList(), dialogSearchMoreVisible = false">查 询</el-button>
       </div>
     </el-dialog>
+    <pr-search-helper-dialog :visible.sync="dialogPurchaseUserSearchHelperVisible" @selected="purchaseUserSelected" />
   </div>
 </template>
 
 <script>
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
-import { getGridMetadata, getToolbarMetadata, queryList, getBoMetadata, buildQueryParams, getDict } from '@/api/pan'
+import { fetchGridMetadata, fetchToolbarMetadata, fetchList } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
-import { isBlank } from '@/utils/pan'
+import PrSearchHelperDialog from '@/components/pro/PrSearchHelperDialog'
+import { isBlank } from '@/utils'
 import request from '@/utils/request'
 import { UI_TYPE, ACTION } from '@/constants.js'
-import PrSearchHelper from '@/components/pro/PrSearchHelper'
 
 export default {
   name: 'PurchaseApplyList',
-  components: { PrSearchHelper, Pagination },
+  components: { Pagination, PrSearchHelperDialog },
   directives: { waves },
   data() {
     return {
+      UI_TYPE,
       // 业务对象id
-      boId: '000000000420',
-      boName: 'PurchaseApply',
+      boId: '000000000500',
+      boName: 'PurchaseApplyFront',
       idProp: 'purchaseapplyid',
       list: null,
       total: 0,
@@ -176,11 +149,12 @@ export default {
         page: 1,
         limit: 20,
         whereSql: '',
-        defaultCondition: '( 1=1 AND FORMTYPE IN (\'PO\',\'PRPO\'))',
-        orderSql: 'CREATETIME DESC'
+        defaultCondition: '%201=1%20%20%20AND%20FORMTYPE%20IN%20(\'PO\',\'PRPO\')',
+        orderSql: 'APPLYDATE DESC'
       },
       selectedRows: [],
       dialogSearchMoreVisible: false,
+      dialogPurchaseUserSearchHelperVisible: false,
       config: {
         gridColumns: [],
         gridActions: [],
@@ -191,22 +165,17 @@ export default {
       }
     }
   },
-  beforeCreate() {
-    this.UI_TYPE = UI_TYPE
-  },
   created() {
-    getBoMetadata(this.boId).then(boMeta => {
-      this.boMeta = boMeta
-      return getGridMetadata(this.boId)
-    }).then(async columns => {
+    fetchGridMetadata(this.boId).then(columns => {
       if (this.postConfigGridColumns) {
         columns = this.postConfigGridColumns(columns)
       }
+      console.log(JSON.stringify(columns))
       this.config.gridColumns = columns.filter(col => {
-        return col.visibility && !col.action
+        return !col.action
       })
       this.config.gridActions = columns.filter(col => {
-        return col.visibility && col.action
+        return col.action
       }).map(col => {
         if (isBlank(col.label)) {
           switch (col.action) {
@@ -219,28 +188,17 @@ export default {
         }
         return col
       })
-      // 列表查询选项
-      const searchItems = []
-      for (const col of columns.filter(col => col.isCondition)) {
-        const property = this.boMeta[col.prop] || {}
-        const item = { ...property, ...col }
-        if (item.uiType === UI_TYPE.SELECT) {
-          item.options = await getDict(this.boMeta[item.prop].dictName)
-        }
-        searchItems.push(item)
-      }
-      this.config.searchMoreItems = this.postConfigSearchMoreItems(searchItems, columns)
-      this.config.quickSearchItems = this.postConfigQuickSearchItems(searchItems, columns)
+      this.config.searchMoreItems = this.postConfigSearchMoreItems(columns.filter(col => col.isCondition), columns)
+      this.config.quickSearchItems = this.postConfigQuickSearchItems(columns.filter(col => col.isCondition), columns)
       console.log('config.gridColumns', this.config.gridColumns)
       console.log('config.gridActions', this.config.gridActions)
       console.log('config.searchMoreItems', this.config.searchMoreItems)
-      console.log('config.quickSearchItems', this.config.quickSearchItems)
     }).then(() => {
       this.getList()
     }).catch(err => {
       console.log('渲染Grid发生错误', err)
     })
-    getToolbarMetadata(this.boId).then(items => {
+    fetchToolbarMetadata(this.boId).then(items => {
       items.map(item => {
         if (item.action === ACTION.DELETES) {
           item.btnType = 'danger'
@@ -253,11 +211,6 @@ export default {
     // 对Grid的列表配置数据二次处理
     postConfigGridColumns(columns) {
       console.log('fetchGridMetadata:', columns)
-      columns.push({
-        prop: 'lifnr_text',
-        label: '采购供应商名称',
-        width: 120
-      })
       return columns.filter(col => {
         return true
       }).map(col => {
@@ -279,16 +232,46 @@ export default {
       })
     },
     postConfigSearchMoreItems(items, columns) {
+      items = items.map(item => {
+        if (item.prop === 'applydate') {
+          item.uiType = UI_TYPE.DATE_RANGE
+        }
+        return item
+      })
+      items.push({
+        prop: 'businessstate',
+        label: '单据状态',
+        uiType: UI_TYPE.SELECT,
+        options: [
+          { label: '作废', value: '-1' },
+          { label: '新增', value: '0' },
+          { label: '在途', value: '1' },
+          { label: '审批通过', value: '2' },
+          { label: '审批不通过', value: '3' },
+          { label: '单据处理', value: '4' }
+        ]
+      }, {
+        prop: 'isprint',
+        label: '是否已打印',
+        uiType: UI_TYPE.SELECT,
+        options: [
+          { label: '是', value: 'Y' },
+          { label: '否', value: 'N' }
+        ]
+      }, {
+        prop: 'ebeln',
+        label: '采购凭证编号'
+      })
       return items
     },
     postConfigQuickSearchItems(items, columns) {
-      for (const item of items) {
-        if (item.uiType === UI_TYPE.SEARCH_HELP) {
-          // TODO 测试需要，强制设置为多选的搜索帮助
-          item.multiSelect = true
+      const quickProps = ['purchaseapplyno', 'applydate', 'bsart']
+      return items.filter(item => quickProps.includes(item.prop)).map(item => {
+        if (item.prop === 'applydate') {
+          item.uiType = UI_TYPE.DATE_RANGE
         }
-      }
-      return items
+        return item
+      })
     },
     postConfigToolbarItems(items) {
       items.push({
@@ -298,20 +281,16 @@ export default {
       })
       return items
     },
-    async getList() {
+    getList() {
       this.listLoading = true
-      try {
-        console.log('before getList:', this.listQuery)
-        const params = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boMeta)
-        const response = await queryList(params, this.boName)
-        console.log('after getList:', this.listQuery)
+      fetchList(this.listQuery, this.boName, this.boId).then(response => {
         this.list = response.data.items
         this.total = response.data.total
         this.listLoading = false
-      } catch (err) {
+      }).catch(err => {
         console.log('拉取列表数据发生错误', err)
         this.listLoading = false
-      }
+      })
     },
     columnFormatter(row, column, cellValue, index) {
       if (cellValue === 'Y') {
@@ -398,10 +377,18 @@ export default {
       console.log(queryString, result)
       cb(result)
     },
+    openSearchHelper() {
+      this.dialogPurchaseUserSearchHelperVisible = true
+    },
+    purchaseUserSelected(row) {
+      this.listQuery.purchaseUser = row.USERNAME
+      this.dialogPurchaseUserSearchHelperVisible = false
+    },
     clearSearch() {
-      for (const item of [...this.config.searchMoreItems, ...this.config.quickSearchItems]) {
-        this.listQuery[item.prop] = undefined
-      }
+      Object.keys(this.listQuery).forEach((key) => {
+        if (key === 'page' || key === 'limit') { return }
+        this.listQuery[key] = undefined
+      })
     }
   }
 }

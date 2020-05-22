@@ -171,5 +171,11 @@ export default {
     tagsView: '开启 Tags-View',
     fixedHeader: '固定 Header',
     sidebarLogo: '侧边栏 Logo'
+  },
+  pan: {
+    _view: '查看',
+    _edit: '编辑',
+    _create: '创建',
+    _delete: '删除'
   }
 }

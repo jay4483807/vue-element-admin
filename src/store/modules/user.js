@@ -53,7 +53,7 @@ const actions = {
   panLogin({ commit, state }, userInfo) {
     const { username, password } = userInfo
     return new Promise((resolve, reject) => {
-      panLogin({ userName: username.trim(), passWord: md5(password).toUpperCase(), client: '800', languageIso: 'zh' }).then(response => {
+      panLogin({ userName: username.trim(), passWord: md5(password).toUpperCase(), client: process.env.VUE_APP_CLIENT, languageIso: 'zh' }).then(response => {
         console.log('登录成功', response)
         resolve()
       }).catch(error => {
