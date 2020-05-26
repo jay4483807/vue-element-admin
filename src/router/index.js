@@ -33,7 +33,7 @@ import nestedRouter from './modules/nested'
   }
  */
 
-const hideDemo = true
+const hideDemo = false
 
 /**
  * constantRoutes
@@ -125,6 +125,17 @@ export const constantRoutes = [
         meta: { title: 'profile', icon: 'user', noCache: true }
       }
     ]
+  },
+  {
+    path: '/demo',
+    component: Layout,
+    children: [
+      {
+        path: '出口单据',
+        component: () => import('@/views/pan/demo'),
+        name: 'PanDemo',
+        meta: { title: '出口单据' }
+      }]
   }
 ]
 

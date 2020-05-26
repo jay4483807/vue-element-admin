@@ -134,6 +134,8 @@
             :search-help-name="item.searchHelpName || ''"
             :value-field="item.searchHelpValueField"
             :display-field="item.searchHelpDisplayFiled"
+            :default-condition="item.defaultCondition"
+            :sort-columns="item.sortColumns"
             class="filter-item"
           />
           <el-select v-else-if="item.uiType===UI_TYPE.SELECT" :key="index" v-model="listQuery[item.prop]" clearable class="filter-item">
@@ -152,9 +154,9 @@
 
 <script>
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
-import { getGridMetadata, getToolbarMetadata, queryList, getBoMetadata, buildQueryParams, getDict } from '@/api/pan'
+import { getGridMetadata, getToolbarMetadata, queryList, getBoMetadata, buildQueryParams } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
-import { isBlank } from '@/utils/pan'
+import { buildFormItemConfig, isBlank } from '@/utils/pan'
 import request from '@/utils/request'
 import { UI_TYPE, ACTION } from '@/constants.js'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
@@ -165,10 +167,9 @@ export default {
   directives: { waves },
   data() {
     return {
-      // 业务对象id
-      boId: '000000000420',
+      // 业务对象名
       boName: 'PurchaseApply',
-      idProp: 'purchaseapplyid',
+      idProp: '',
       list: null,
       total: 0,
       listLoading: true,
@@ -195,9 +196,18 @@ export default {
     this.UI_TYPE = UI_TYPE
   },
   created() {
-    getBoMetadata(this.boId).then(boMeta => {
+    getBoMetadata(this.boName).then(boMeta => {
       this.boMeta = boMeta
-      return getGridMetadata(this.boId)
+      for (const prop of Object.keys(boMeta)) {
+        if (boMeta[prop].idProp === true) {
+          this.idProp = prop
+          break
+        }
+      }
+      if (!this.idProp) {
+        console.warn('未找到业务对象[' + this.boName + ']的id属性')
+      }
+      return getGridMetadata(this.boName)
     }).then(async columns => {
       if (this.postConfigGridColumns) {
         columns = this.postConfigGridColumns(columns)
@@ -222,12 +232,7 @@ export default {
       // 列表查询选项
       const searchItems = []
       for (const col of columns.filter(col => col.isCondition)) {
-        const property = this.boMeta[col.prop] || {}
-        const item = { ...property, ...col }
-        if (item.uiType === UI_TYPE.SELECT) {
-          item.options = await getDict(this.boMeta[item.prop].dictName)
-        }
-        searchItems.push(item)
+        searchItems.push(await buildFormItemConfig(col, this.boMeta))
       }
       this.config.searchMoreItems = this.postConfigSearchMoreItems(searchItems, columns)
       this.config.quickSearchItems = this.postConfigQuickSearchItems(searchItems, columns)
@@ -240,7 +245,7 @@ export default {
     }).catch(err => {
       console.log('渲染Grid发生错误', err)
     })
-    getToolbarMetadata(this.boId).then(items => {
+    getToolbarMetadata(this.boName).then(items => {
       items.map(item => {
         if (item.action === ACTION.DELETES) {
           item.btnType = 'danger'

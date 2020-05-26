@@ -33,7 +33,7 @@
 
 <script>
 import Pagination from '@/components/Pagination'
-import { fetchSearchHelpInfo, querySearchHelpList } from '@/api/pan'
+import { fetchSearchHelpInfo, querySearchHelpDataByIds, querySearchHelpList } from '@/api/pan'
 
 const selectItems = [{ value: 'like', text: '*' },
   { value: 'greater', text: '>' },
@@ -175,13 +175,11 @@ export default {
     changeShowSelectedOnly() {
       this.showSelectedOnly = !this.showSelectedOnly
     },
-    getRowById(id) {
+    async getRowByIds(ids) {
       if (!this.idProp) {
         throw new Error('未指定idProp，无法通过getRowById查询记录')
       }
-      for (const row of [...this.selectedRows, ...this.list]) {
-        if (row[this.idProp] === id) { return row }
-      }
+      return querySearchHelpDataByIds(this.searchHelpName, this.idProp, ids)
     }
   }
 }

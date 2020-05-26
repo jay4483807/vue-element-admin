@@ -4,11 +4,14 @@ export const ACTION = {
   EDIT: '_edit',
   CREATE: '_create',
   DELETE: '_delete',
-  DELETES: '_deletes'
+  DELETES: '_deletes',
+  SAVE: '_saveOrUpdate',
+  CANCEL: '_cancel'
 }
 
 export const UI_TYPE = {
   TEXT: '_text',
+  TEXT_AREA: '_textArea',
   DATE: '_date',
   DATE_RANGE: '_dateRange',
   DATE_TIME: '_dateTime',

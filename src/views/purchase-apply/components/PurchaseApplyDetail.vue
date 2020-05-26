@@ -2,97 +2,79 @@
   <div>
     <el-form ref="form" label-width="140px" :inline="false" label-position="right" :model="form" :rules="rules" class="form-container">
       <sticky :z-index="10" class-name="sub-navbar draft" :sticky-top="84">
-        <el-button :loading="loading" type="primary" @click="save">保存</el-button>
-        <el-button type="primary" :disabled="!id" @click="submit">提交</el-button>
-        <el-button type="success" @click="print">打印</el-button>
-        <el-button type="info" @click="close">关闭</el-button>
+        <el-button
+          v-for="(item,index) of config.toolbarItems"
+          :key="index"
+          :type="item.btnType"
+          :loading="item.loading"
+          :disabled="item.disabled"
+          @click="_toolbarItemClick(item)"
+        >{{ item.label }}</el-button>
       </sticky>
       <div class="form-main-container">
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="申请单号"><el-input v-model="form.purchaseapplyno" disabled /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="申请日期" prop="applydate"><el-date-picker v-model="form.applydate" type="date" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="采购申请凭证类型" class="line-feed"><el-select v-model="form.bsart">
-              <el-option value="JSPR" label="Stock PR-JF" />
-              <el-option value="BNPR" label="Non Stock PR-BJ" />
-              <el-option value="JNPR" label="Non Stock PR-JF" />
-              <el-option value="JPPR" label="Project Stock PR-JF" />
-            </el-select></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="采购订单日期" prop="bedat"><el-date-picker v-model="form.bedat" type="date" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="采购组织"><el-select value="" /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="公司代码"><el-input v-model="form.bukrs" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="状态"><el-input v-model="form.status" /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="评估净值"><el-input v-model="form.assnetwr" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="采购员"><el-input v-model="form.purchasename" /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="采购凭证编号"><el-input v-model="form.purchaseapplyno" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="是否急需"><el-select v-model="form.need"><el-option label="是" value="1" /><el-option label="否" value="0" /></el-select></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="推荐供应商"><el-input /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="是否已打印"><el-checkbox v-model="form.isprint" /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="打印次数"><el-input v-model="form.printnum" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24" class="span-2">
-            <el-form-item label="原因/用途" prop="memo"><el-input v-model="form.memo" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="创建人"><el-input v-model="form.creator" disabled /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="创建日期"><el-input v-model="form.createtime" disabled /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" type="flex" justify="center">
-          <el-col :span="12" class="span-1">
-            <el-form-item label="最后修改人"><el-input v-model="form.lastmodifyer" disabled /></el-form-item>
-          </el-col>
-          <el-col :span="12" class="span-1">
-            <el-form-item label="最后修改日期"><el-input v-model="form.lastmodifytime" disabled /></el-form-item>
+        <el-row v-for="(row,rowIndex) of config.formRowColumns" :key="rowIndex" :gutter="20" type="flex">
+          <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item.uiType===UI_TYPE.TEXT_AREA?24:12">
+            <el-form-item :label="item.label" :prop="item.prop">
+              <el-date-picker
+                v-if="item.uiType===UI_TYPE.DATE_RANGE"
+                v-model="form[item.prop]"
+                type="daterange"
+                start-placeholder="开始日期"
+                range-separator="-"
+                end-placeholder="结束日期"
+                :readonly="item.readOnly"
+              />
+              <el-date-picker
+                v-else-if="item.uiType===UI_TYPE.DATE"
+                v-model="form[item.prop]"
+                type="date"
+                :editable="item.readOnly"
+              />
+              <el-date-picker
+                v-else-if="item.uiType===UI_TYPE.DATE_TIME"
+                v-model="form[item.prop]"
+                type="datetime"
+                :readonly="item.readOnly"
+              />
+              <el-date-picker
+                v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
+                v-model="form[item.prop]"
+                type="datetimerange"
+                start-placeholder="i开始时间"
+                range-separator="-"
+                end-placeholder="结束日期"
+                :readonly="item.readOnly"
+              />
+              <pr-search-helper
+                v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
+                v-model="form[item.prop]"
+                :multi-select="item.multiSelect"
+                :search-help-name="item.searchHelpName || ''"
+                :value-field="item.searchHelpValueField"
+                :display-field="item.searchHelpDisplayFiled"
+                :default-condition="item.defaultCondition"
+                :sort-columns="item.sortColumns"
+                :readonly="item.readOnly"
+              />
+              <el-select
+                v-else-if="item.uiType===UI_TYPE.SELECT"
+                v-model="form[item.prop]"
+                clearable
+                :readonly="item.readOnly"
+              >
+                <el-option v-for="opt of item.options" :key="opt.value" :label="opt.text" :value="opt.value" />
+              </el-select>
+              <el-input
+                v-else
+                v-model="form[item.prop]"
+                :readonly="item.readOnly"
+              />
+            </el-form-item>
           </el-col>
         </el-row>
       </div>
     </el-form>
-    <el-tabs v-model="activeTag" class="tabs-container" @tab-click="handleTagClick">
+    <el-tabs v-model="activeTag" class="tabs-container">
       <el-tab-pane label="项目预览" name="project">
         <div class="tab-main-container">
           <el-row class="el-button-group">
@@ -150,18 +132,16 @@
 </template>
 
 <script>
-import { fetchDetail, fetchProjectList } from '@/api/purchase-apply'
 import Sticky from '@/components/Sticky/index'
-import { fetchFormColumns } from '@/api/pan'
-
-const defaultForm = {
-  // 是否急需
-  need: 0
-}
+import { fetchFormData, getBoMetadata, getFormColumns, getFormToolbar } from '@/api/pan'
+import PrSearchHelper from '@/components/pro/PrSearchHelper'
+import { ACTION, UI_TYPE } from '@/constants'
+import { buildFormItemConfig, parseDate, parseDateTime } from '@/utils/pan'
+import request from '@/utils/request'
 
 export default {
   name: 'PurchaseApplyDetail',
-  components: { Sticky },
+  components: { Sticky, PrSearchHelper },
   props: {
     editable: {
       type: Boolean,
@@ -171,26 +151,15 @@ export default {
       type: String,
       default: ''
     },
-    boId: {
+    boName: {
       type: String,
-      default: ''
+      required: true
     }
   },
   data() {
     return {
-      form: Object.assign({}, defaultForm),
-      loading: false,
-      rules: {
-        applydate: [
-          { required: true, trigger: 'blur', message: '请输入申请日期' }
-        ],
-        bedat: [
-          { required: true, trigger: 'blur', message: '请输入采购订单日期' }
-        ],
-        memo: [
-          { required: true, trigger: 'blur', message: '请输入原因/用途' }
-        ]
-      },
+      form: {},
+      rules: {},
       tempRoute: {},
       activeTag: 'project',
       tagData: {
@@ -198,13 +167,84 @@ export default {
         attachment: []
       },
       config: {
-        formColumns: []
+        formRowColumns: [],
+        toolbarItems: []
       }
     }
   },
+  beforeCreate() {
+    this.UI_TYPE = UI_TYPE
+  },
   created() {
-    fetchFormColumns(this.boId).then(columns => {
-      this.config.formColumns = columns
+    getBoMetadata(this.boName).then(boMeta => {
+      this.boMeta = boMeta
+      for (const prop of Object.keys(boMeta)) {
+        if (boMeta[prop].idProp === true) {
+          this.idProp = prop
+          break
+        }
+      }
+      if (!this.idProp) {
+        console.warn('未找到业务对象[' + this.boName + ']的id属性')
+      }
+      console.log('获取业务对象属性信息:', this.boMeta)
+      return getFormToolbar(this.boName)
+    }).then((items) => {
+      this.config.toolbarItems = items.filter(item => {
+        if (!this.editable && item.action === ACTION.SAVE) { return false }
+        return true
+      }).map(item => {
+        item = {
+          btnType: 'primary',
+          disabled: false,
+          loading: false,
+          ...item
+        }
+        if (item.action === ACTION.CANCEL) {
+          item.btnType = 'info'
+        }
+        return item
+      })
+      return getFormColumns(this.boName)
+    }).then(async columns => {
+      columns = columns.filter(col => col.visibility).sort((col1, col2) => col1.rowNo - col2.rowNo || col1.colNo - col2.colNo)
+      const rowCols = []
+      const noPosColumns = []
+      const rules = {}
+      const formItems = {}
+      for (const col of columns) {
+        const item = await buildFormItemConfig(col, this.boMeta)
+        if (item.required) {
+          rules[item.prop] = [
+            { required: true, trigger: 'blur', message: '请输入' + item.label }
+          ]
+        }
+        formItems[item.prop] = item
+        if (item.rowNo > 0 && item.colNo > 0) {
+          let row = rowCols[item.rowNo - 1]
+          if (!row) {
+            row = []
+            rowCols[item.rowNo - 1] = row
+          }
+          row.push(item)
+        } else {
+          noPosColumns.push(item)
+        }
+      }
+      for (const col of noPosColumns) {
+        const colSize = col.uiType === UI_TYPE.TEXT_AREA ? 2 : 1
+        let row = rowCols[rowCols.length - 1]
+        if (row.length + colSize > 2) {
+          row = []
+          rowCols[rowCols.length] = row
+        }
+        row.push(col)
+      }
+      this.formItems = formItems
+      console.log('获取表单字段信息:', formItems)
+      this.rules = rules
+      this.config.formRowColumns = rowCols
+      console.log('get formRowColumns', rowCols, rules)
     }).then(() => {
       if (this.id) {
         this.fetchData(this.id)
@@ -218,28 +258,56 @@ export default {
   },
   methods: {
     fetchData(id) {
-      fetchDetail(id).then(rsp => {
-        this.form = rsp.data
+      fetchFormData(this.boName, id).then(formData => {
+        this.form = this.formatFormData(formData)
       })
-      fetchProjectList(this.id).then(rsp => {
-        this.tagData.project = rsp.data.items
-      })
+      return
+      // fetchProjectList(this.id).then(rsp => {
+      //   this.tagData.project = rsp.data.items
+      // })
+    },
+    formatFormData(formData) {
+      for (const prop of Object.keys(formData)) {
+        const item = this.formItems[prop]
+        if (!item) { continue }
+        switch (item.uiType) {
+          case UI_TYPE.DATE: {
+            formData[prop] = parseDate(formData[prop])
+            break
+          }
+          case UI_TYPE.DATE_TIME: {
+            formData[prop] = parseDateTime(formData[prop])
+            break
+          }
+        }
+      }
+      return formData
     },
     handleTagClick(tab, event) {
 
     },
-    save() {
+    save(item) {
       this.$refs.form.validate(valid => {
         if (valid) {
-          this.loading = true
-          setTimeout(() => {
-            this.loading = false
+          item.loading = true
+          const submitData = {}
+          for (const prop of Object.keys(this.form)) {
+            submitData[this.boName + '.' + prop] = this.form[prop]
+          }
+          request({
+            url: item.url,
+            data: submitData
+          }).then(rsp => {
+            item.loading = false
             this.$message({
               message: '保存成功',
               type: 'success',
               duration: 2000
             })
-          }, 1000)
+          }).catch(err => {
+            item.loading = false
+            console.log('save error:', err)
+          })
         } else {
           this.$message({
             message: '数据校验失败，请检查',
@@ -266,6 +334,26 @@ export default {
       this.$store.dispatch('tagsView/delView', this.$route)
       // 返回上一步路由
       this.$router.go(-1)
+    },
+    _toolbarItemClick(item) {
+      if (item.clickFunc) {
+        item.clickMethod.apply(this, item)
+        return
+      }
+      // 默认点击处理逻辑
+      switch (item.action) {
+        case ACTION.SAVE: {
+          this.save(item)
+          break
+        }
+        case ACTION.CANCEL: {
+          this.close(item)
+          break
+        }
+        default: {
+          console.warn('按钮[' + item.label + ']未配置对应的处理方法')
+        }
+      }
     }
   }
 }
@@ -295,14 +383,18 @@ export default {
       }
 
       .span-1 {
-        .el-input {
-          width: 300px;
-        }
-        .el-select {
-          width: 300px;
-        }
+        /*.el-input {*/
+          /*width: 300px;*/
+        /*}*/
+        /*.el-select {*/
+          /*width: 300px;*/
+        /*}*/
       }
     }
+  }
+
+  .el-form-item__content>div {
+    width: 100%;
   }
 
   .tabs-container {

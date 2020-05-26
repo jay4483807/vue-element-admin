@@ -1,18 +1,24 @@
 import request from '@/utils/request'
-import { isBlank, tranBlank, tranBoolean } from '@/utils/pan'
+import { isBlank, transBlank, transBoolean, transNumber } from '@/utils/pan'
 import { UI_TYPE, FORMAT } from '@/constants.js'
 import moment from 'moment'
 
 const uiTypeMapping = {
   '04': UI_TYPE.DATE,
+  '05': UI_TYPE.DATE_TIME,
   '01': UI_TYPE.TEXT,
   '11': UI_TYPE.SEARCH_HELP,
-  '06': UI_TYPE.SELECT
+  '06': UI_TYPE.SELECT,
+  '12': UI_TYPE.TEXT_AREA
 }
 
+const boInfos = new Map()
 const boIdMap = new Map()
 const gridMeta = new Map()
 const toolbarMeta = new Map()
+const formMeta = new Map()
+const formToolbarMeta = new Map()
+const boMethods = new Map()
 
 function boQueryGrid(boName, defaultCondition, orderSql) {
   return request({
@@ -31,35 +37,92 @@ function boQueryGrid(boName, defaultCondition, orderSql) {
   })
 }
 
-export async function getBoMetadata(boId) {
-  let boMetadata = boIdMap.get(boId)
-  if (!boMetadata) {
+export async function getBoInfo(boName) {
+  let boInfo = boInfos.get(boName)
+  if (!boInfo) {
+    const { coustom } = await request({
+      url: '/vueController.spr?action=getBusinessObject',
+      data: {
+        boname: boName
+      }
+    })
+    boInfo = {
+      boName: coustom.boname,
+      boId: coustom.boid,
+      description: coustom.description
+    }
+    boInfos.set(boName, boInfo)
+  }
+  return boInfo
+}
+
+export async function getBoMetadata(boName) {
+  return getOrFetch(boIdMap, boName, async(boName) => {
+    const { boId } = await getBoInfo(boName)
     const proArr = await fetchBoProperties(boId)
-    boMetadata = {}
+    const boMetadata = {}
     for (const pro of proArr) {
       boMetadata[pro.prop] = pro
     }
-    boIdMap.set(boId, boMetadata)
-  }
-  return boMetadata
+    return boMetadata
+  })
 }
 
-export async function getGridMetadata(boId) {
-  let grid = gridMeta.get(boId)
-  if (!grid) {
-    grid = await fetchGridMetadata(boId)
-    gridMeta.set(boId, grid)
-  }
-  return grid
+export async function getGridMetadata(boName) {
+  return getOrFetch(gridMeta, boName, fetchGridMetadata)
 }
 
-export async function getToolbarMetadata(boId) {
-  let toolbar = toolbarMeta.get(boId)
-  if (!toolbar) {
-    toolbar = await fetchToolbarMetadata(boId)
-    toolbarMeta.set(boId, toolbar)
+export async function getToolbarMetadata(boName) {
+  return getOrFetch(toolbarMeta, boName, fetchToolbarMetadata)
+}
+
+export async function getFormColumns(boName) {
+  return getOrFetch(formMeta, boName, fetchFormColumns)
+}
+
+export async function getFormToolbar(boName) {
+  return getOrFetch(formToolbarMeta, boName, (boName) => {
+    return getBoInfo(boName).then(({ boId }) => {
+      return boQueryGrid('BizFormToolbar', "%20YFORMTOOLBAR.BOID='" + boId + "'", 'ORDERNO')
+    }).then(rsp => {
+      return getBoMethod(boName).then(methods => {
+        return rsp.data.map(item => {
+          return {
+            ...(methods[item.methodname] || {}),
+            action: item.methodname,
+            label: item.methoddesc
+          }
+        })
+      })
+    })
+  })
+}
+
+export async function getBoMethod(boName) {
+  return getOrFetch(boMethods, boName, (boName) => {
+    return getBoInfo(boName).then(({ boId }) => {
+      return boQueryGrid('BizMethod', "%20YMETHOD.BOID='" + boId + "'", null)
+    }).then(rsp => {
+      const methods = {}
+      for (const method of rsp.data) {
+        methods[method.methodname] = {
+          action: method.methodname,
+          label: method.methoddesc,
+          url: method.url
+        }
+      }
+      return methods
+    })
+  })
+}
+
+async function getOrFetch(map, key, fetchFunc) {
+  let result = map.get(key)
+  if (!result) {
+    result = await fetchFunc(key)
+    map.set(key, result)
   }
-  return toolbar
+  return result
 }
 
 // 获取业务对象属性
@@ -78,61 +141,65 @@ export function fetchBoProperties(boId) {
         searchHelpValueField: col.shsourcecolumn,
         tabname: col.tabname,
         colname: col.colname,
-        dictName: col.dictablename
+        dictName: col.dictablename,
+        idProp: transBoolean(col.keyflag) && col.proname !== 'client'
       }
     })
   })
 }
 
-export function fetchGridMetadata(boId) {
-  return boQueryGrid('BizGridColumn', "%20YGRIDCOLUMN.BOID='" + boId + "'", 'COLUMNNO').then(rsp => {
-    return rsp.data.filter(col => {
-      return true
-    }).map((col) => {
-      return {
-        // 对应属性名
-        prop: col.proname,
-        // 列名
-        label: col.fieldtext,
-        visibility: tranBoolean(col.visibility),
-        // 指定列宽（可选）
-        width: isBlank(col.width) ? undefined : Math.max(40, Number(col.width)),
-        // 列显示顺序
-        columnNo: (col.columnno || '').trim(),
-        // 动作，一般对应成操作按钮（可选）
-        action: tranBlank(col.methodname),
-        isCondition: tranBoolean(col.iscondition),
-        uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT
-      }
-    }).sort((c1, c2) => { return (c1.columnNo || '').localeCompare(c2.columnNo || '') })
+async function fetchGridMetadata(boName) {
+  const { boId } = await getBoInfo(boName)
+  const { data } = await boQueryGrid('BizGridColumn', "%20YGRIDCOLUMN.BOID='" + boId + "'", 'COLUMNNO')
+  return data.filter(col => {
+    return true
+  }).map((col) => {
+    return {
+      // 对应属性名
+      prop: col.proname,
+      // 列名
+      label: col.fieldtext,
+      visibility: transBoolean(col.visibility),
+      // 指定列宽（可选）
+      width: isBlank(col.width) ? undefined : Math.max(40, Number(col.width)),
+      // 列显示顺序
+      columnNo: (col.columnno || '').trim(),
+      // 动作，一般对应成操作按钮（可选）
+      action: transBlank(col.methodname),
+      isCondition: transBoolean(col.iscondition),
+      uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT
+    }
+  }).sort((c1, c2) => { return (c1.columnNo || '').localeCompare(c2.columnNo || '') })
+}
+
+async function fetchToolbarMetadata(boName) {
+  const { boId } = await getBoInfo(boName)
+  const { data } = await boQueryGrid('BizGridToolbar', "%20YGRIDTOOLBAR.BOID='" + boId + "'", 'ORDERNO')
+  return data.map(item => {
+    return {
+      action: item.methodname,
+      label: item.methoddesc
+    }
   })
 }
 
-export function fetchToolbarMetadata(boId) {
-  return boQueryGrid('BizGridToolbar', "%20YGRIDTOOLBAR.BOID='" + boId + "'", 'ORDERNO').then(rsp => {
-    return rsp.data.map(item => {
-      return {
-        action: item.methodname,
-        label: item.methoddesc
-      }
-    })
-  })
-}
-
-export function fetchFormColumns(boId) {
-  return boQueryGrid('BizFormColumn', "%20YFORMCOLUMN.BOID='" + boId + "'", 'ROWNO,COLUMNNO').then(rsp => {
-    return rsp.data.map(col => {
-      return {
-        // 对应属性名
-        prop: col.proname,
-        // 列名
-        label: col.fieldtext,
-        uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT,
-        defaultValue: col.defaultvalue,
-        visibility: tranBoolean(col.visibility),
-        nullable: tranBoolean(col.nullable)
-      }
-    })
+async function fetchFormColumns(boName) {
+  const { boId } = await getBoInfo(boName)
+  const { data } = await boQueryGrid('BizFormColumn', "%20YFORMCOLUMN.BOID='" + boId + "'", 'ROWNO,COLUMNNO')
+  return data.map(col => {
+    return {
+      // 对应属性名
+      prop: col.proname,
+      // 列名
+      label: col.fieldtext,
+      uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT,
+      defaultValue: transBlank(col.defaultvalue),
+      visibility: transBoolean(col.visibility),
+      required: transBoolean(col.nullable),
+      readOnly: transBoolean(col.readonly),
+      colNo: transNumber(col.columnno),
+      rowNo: transNumber(col.rowno)
+    }
   })
 }
 
@@ -256,10 +323,10 @@ export function fetchSearchHelpInfo(searchHelpName) {
       return {
         prop: item.fieldname,
         label: item.ddtext,
-        isCondition: tranBoolean(item.shlpinput),
+        isCondition: transBoolean(item.shlpinput),
         columnNo: item.shlplispos,
         // 列是否可见
-        visibility: tranBoolean(item.shlpoutput),
+        visibility: transBoolean(item.shlpoutput),
         // 查询条件顺序
         conditionNo: item.shlpselpos
       }
@@ -271,5 +338,32 @@ export function querySearchHelpList(query, searchHelpName) {
   return pageQuery('/searchHelpQueryController.spr?action=queryShlpGrid', {
     ...query,
     shlpName: searchHelpName
+  })
+}
+
+export function querySearchHelpDataByIds(searchHelpName, idProp, ids) {
+  return request({
+    url: '/vueController.spr?action=getSearchhelpText',
+    data: {
+      searchhelpname: searchHelpName,
+      shsourcecolumn: idProp,
+      shtextcolumn: idProp,
+      sourcevalue: ids.join(','),
+      isqueryall: 'Y'
+    }
+  }).then(rsp => {
+    const result = rsp.coustom.rowinfo
+    return (result instanceof Array) ? result : [result]
+  })
+}
+
+export function fetchFormData(boName, id) {
+  return getBoInfo(boName).then(({ boId }) => {
+    return request({
+      url: '/vueController.spr?action=getBusinessObjectInfo&language=ZH',
+      params: { businessid: id, boid: boId }
+    })
+  }).then(rsp => {
+    return rsp.coustom.billinfo
   })
 }

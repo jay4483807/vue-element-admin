@@ -52,18 +52,9 @@ export default {
     }
   },
   watch: {
-    value(val, oldVal) {
+    async value(val, oldVal) {
       if (this.valueEquals(val, this.getValue())) { return }
-      // TODO 手动设置value时，显示值如何获取？
-      this.selectedRows = (val instanceof Array ? val : [val]).map(v => {
-        let row = this.$refs.shDialog.getRowById(v)
-        if (!row) {
-          row = {}
-          row[this.valueField] = v
-          row[this.displayField] = v
-        }
-        return row
-      })
+      this.selectedRows = await this.$refs.shDialog.getRowByIds((val instanceof Array ? val : [val]))
     }
   },
   methods: {

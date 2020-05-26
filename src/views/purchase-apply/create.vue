@@ -1,5 +1,5 @@
 <template>
-  <purchase-apply-detail :editable="true" />
+  <purchase-apply-detail :editable="true" bo-name="PurchaseApply" />
 </template>
 
 <script>
