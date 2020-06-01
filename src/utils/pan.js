@@ -1,6 +1,3 @@
-import { UI_TYPE } from '@/constants'
-import { getDict } from '@/api/pan'
-
 export function isBlank(str) {
   if (typeof str === 'string') {
     return str === '' || str.match(/^\s*$/)
@@ -19,15 +16,6 @@ export function transBoolean(value) {
 
 export function transNumber(value, defaultValue = 0) {
   return typeof value === 'number' ? value : (isBlank(value) ? defaultValue : Number(value))
-}
-
-export async function buildFormItemConfig(col, boMeta) {
-  const property = boMeta[col.prop] || {}
-  const item = { ...property, ...col }
-  if (item.uiType === UI_TYPE.SELECT) {
-    item.options = await getDict(boMeta[item.prop].dictName)
-  }
-  return item
 }
 
 export function parseDate(dateStr) {

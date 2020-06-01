@@ -45,9 +45,9 @@ export default {
   computed: {
     selectedLabel() {
       if (this.multiSelect) {
-        return this.selectedRows.map(row => row[this.displayField]).join(', ')
+        return this.selectedRows.map(row => row ? row[this.displayField] : '').join(', ')
       } else {
-        return (this.selectedRows && this.selectedRows.length > 0) ? this.selectedRows[0][this.displayField] : ''
+        return (this.selectedRows && this.selectedRows[0]) ? this.selectedRows[0][this.displayField] : ''
       }
     }
   },

@@ -2,6 +2,8 @@ import request from '@/utils/request'
 import { isBlank, transBlank, transBoolean, transNumber } from '@/utils/pan'
 import { UI_TYPE, FORMAT } from '@/constants.js'
 import moment from 'moment'
+import { ACTION } from '@/constants'
+import i18n from '@/lang'
 
 const uiTypeMapping = {
   '04': UI_TYPE.DATE,
@@ -13,7 +15,6 @@ const uiTypeMapping = {
 }
 
 const boInfos = new Map()
-const boIdMap = new Map()
 const gridMeta = new Map()
 const toolbarMeta = new Map()
 const formMeta = new Map()
@@ -38,34 +39,61 @@ function boQueryGrid(boName, defaultCondition, orderSql) {
 }
 
 export async function getBoInfo(boName) {
-  let boInfo = boInfos.get(boName)
-  if (!boInfo) {
+  return getOrFetch(boInfos, boName, async boName => {
     const { coustom } = await request({
       url: '/vueController.spr?action=getBusinessObject',
       data: {
         boname: boName
       }
     })
-    boInfo = {
+    const boInfo = {
       boName: coustom.boname,
       boId: coustom.boid,
-      description: coustom.description
+      boText: coustom.description,
+      tableName: coustom.tablename
     }
-    boInfos.set(boName, boInfo)
-  }
-  return boInfo
+    const { data } = await boQueryGrid('BizProperty', "%20YPROPERTIES.BOID='" + boInfo.boId + "'", 'PROTYPE,COLUMNNO')
+    const boProps = {}
+    const proArr = data.map(col => {
+      return {
+        // 对应属性名
+        prop: col.proname,
+        // 列名
+        label: col.fieldtext,
+        dataType: col.datatype,
+        searchHelpName: col.searchhelp,
+        searchHelpText: col.searchhelp_text,
+        searchHelpDisplayFiled: col.shtextcolumn,
+        searchHelpValueField: col.shsourcecolumn,
+        tabname: col.tabname,
+        colname: col.colname,
+        dictName: col.dictablename,
+        idProp: transBoolean(col.keyflag) && col.proname !== 'client',
+        subBoName: transBlank(col.subboname)
+      }
+    })
+    for (const pro of proArr) {
+      boProps[pro.prop] = pro
+      if (pro.idProp === true) {
+        if (boInfo.idProp) {
+          console.error('业务对象[' + boName + ']存在重复的id属性')
+        } else {
+          boInfo.idProp = pro.prop
+        }
+      }
+    }
+    boInfo.props = boProps
+    return boInfo
+  })
 }
 
-export async function getBoMetadata(boName) {
-  return getOrFetch(boIdMap, boName, async(boName) => {
-    const { boId } = await getBoInfo(boName)
-    const proArr = await fetchBoProperties(boId)
-    const boMetadata = {}
-    for (const pro of proArr) {
-      boMetadata[pro.prop] = pro
-    }
-    return boMetadata
-  })
+/**
+ * 获取业务对象属性
+ * @param boName
+ * @returns {Promise<*>}
+ */
+export async function getBoProperties(boName) {
+  return (await getBoInfo(boName)).props
 }
 
 export async function getGridMetadata(boName) {
@@ -125,29 +153,6 @@ async function getOrFetch(map, key, fetchFunc) {
   return result
 }
 
-// 获取业务对象属性
-export function fetchBoProperties(boId) {
-  return boQueryGrid('BizProperty', "%20YPROPERTIES.BOID='" + boId + "'", 'PROTYPE,COLUMNNO').then(rsp => {
-    return rsp.data.map(col => {
-      return {
-        // 对应属性名
-        prop: col.proname,
-        // 列名
-        label: col.fieldtext,
-        dataType: col.datatype,
-        searchHelpName: col.searchhelp,
-        searchHelpText: col.searchhelp_text,
-        searchHelpDisplayFiled: col.shtextcolumn,
-        searchHelpValueField: col.shsourcecolumn,
-        tabname: col.tabname,
-        colname: col.colname,
-        dictName: col.dictablename,
-        idProp: transBoolean(col.keyflag) && col.proname !== 'client'
-      }
-    })
-  })
-}
-
 async function fetchGridMetadata(boName) {
   const { boId } = await getBoInfo(boName)
   const { data } = await boQueryGrid('BizGridColumn', "%20YGRIDCOLUMN.BOID='" + boId + "'", 'COLUMNNO')
@@ -203,12 +208,13 @@ async function fetchFormColumns(boName) {
   })
 }
 
-export async function buildQueryParams(items, listQuery, boMeta) {
+export async function buildQueryParams(items, listQuery, boName) {
+  const boProps = await getBoProperties(boName)
   const params = {
     ...listQuery
   }
   for (const item of items) {
-    buildQueryParamsOfItem(item, params[item.prop], params, boMeta)
+    buildQueryParamsOfItem(item, params[item.prop], params, boProps)
   }
   for (const item of items) {
     // 不能在前面先删除属性，否则遇到重复的item会丢失数据
@@ -366,4 +372,64 @@ export function fetchFormData(boName, id) {
   }).then(rsp => {
     return rsp.coustom.billinfo
   })
+}
+
+export async function buildGridConfig(boName, option = {}) {
+  const config = {}
+  const boInfo = await getBoInfo(boName)
+  config.idProp = boInfo.idProp
+  const boProps = await getBoProperties(boName)
+  if (!config.idProp) {
+    console.error('未找到业务对象[' + boName + ']的id属性')
+  }
+  let columns = await getGridMetadata(boName)
+  if (option.postConfigGridColumns) {
+    columns = option.postConfigGridColumns(columns)
+  }
+  config.gridColumns = columns.filter(col => {
+    return col.visibility && !col.action
+  }).map(col => {
+    col.width = Math.max(80, col.width)
+    return col
+  })
+  config.gridActions = columns.filter(col => {
+    return col.visibility && col.action
+  }).map(col => {
+    if (isBlank(col.label)) {
+      switch (col.action) {
+        case ACTION.CREATE:
+        case ACTION.EDIT:
+        case ACTION.VIEW:
+        case ACTION.DELETE:
+          col.label = i18n.t('pan.' + col.action)
+      }
+    }
+    return col
+  })
+  // 列表查询选项
+  const searchItems = []
+  for (const col of columns.filter(col => col.isCondition)) {
+    searchItems.push(await buildFormItemConfig(col, boProps))
+  }
+  config.searchItems = searchItems
+
+  config.toolbarItems = (await getToolbarMetadata(boName)).map(item => {
+    if (item.action === ACTION.DELETES) {
+      item.btnType = 'danger'
+    }
+    return item
+  })
+  if (option.postConfigToolbarItems) {
+    config.toolbarItems = option.postConfigToolbarItems(config.toolbarItems)
+  }
+  return config
+}
+
+export async function buildFormItemConfig(col, boMeta) {
+  const property = boMeta[col.prop] || {}
+  const item = { ...property, ...col }
+  if (item.uiType === UI_TYPE.SELECT) {
+    item.options = await getDict(boMeta[item.prop].dictName)
+  }
+  return item
 }

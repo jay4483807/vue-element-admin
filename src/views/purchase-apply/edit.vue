@@ -1,5 +1,5 @@
 <template>
-  <purchase-apply-detail :id="id" :editable="true" bo-name="PurchaseApply" />
+  <purchase-apply-detail :id="id" :editable="true" :bo-name="boName" />
 </template>
 
 <script>
@@ -9,10 +9,12 @@ export default {
   name: 'Edit',
   components: { PurchaseApplyDetail },
   data() {
-    return { id: '' }
+    return {
+      id: this.$route.params && this.$route.params.id || '',
+      boName: this.$route.meta.boName || ''
+    }
   },
   created() {
-    this.id = this.$route.params && this.$route.params.id
   }
 }
 </script>

@@ -154,9 +154,12 @@
 
 <script>
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
-import { getGridMetadata, getToolbarMetadata, queryList, getBoMetadata, buildQueryParams } from '@/api/pan'
+import {
+  queryList,
+  buildQueryParams,
+  buildGridConfig
+} from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
-import { buildFormItemConfig, isBlank } from '@/utils/pan'
 import request from '@/utils/request'
 import { UI_TYPE, ACTION } from '@/constants.js'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
@@ -168,8 +171,7 @@ export default {
   data() {
     return {
       // 业务对象名
-      boName: 'PurchaseApply',
-      idProp: '',
+      boName: '',
       list: null,
       total: 0,
       listLoading: true,
@@ -183,6 +185,7 @@ export default {
       selectedRows: [],
       dialogSearchMoreVisible: false,
       config: {
+        idProp: '',
         gridColumns: [],
         gridActions: [],
         toolbarItems: [],
@@ -196,62 +199,25 @@ export default {
     this.UI_TYPE = UI_TYPE
   },
   created() {
-    getBoMetadata(this.boName).then(boMeta => {
-      this.boMeta = boMeta
-      for (const prop of Object.keys(boMeta)) {
-        if (boMeta[prop].idProp === true) {
-          this.idProp = prop
-          break
-        }
+    if (this.$route.meta && this.$route.meta.boName) {
+      this.boName = this.$route.meta.boName
+    }
+    buildGridConfig(this.boName, this).then(config => {
+      config.searchMoreItems = this.postConfigSearchMoreItems(config.searchItems)
+      config.quickSearchItems = this.postConfigQuickSearchItems(config.searchItems)
+      this.config = {
+        ...this.config,
+        ...config
       }
-      if (!this.idProp) {
-        console.warn('未找到业务对象[' + this.boName + ']的id属性')
-      }
-      return getGridMetadata(this.boName)
-    }).then(async columns => {
-      if (this.postConfigGridColumns) {
-        columns = this.postConfigGridColumns(columns)
-      }
-      this.config.gridColumns = columns.filter(col => {
-        return col.visibility && !col.action
-      })
-      this.config.gridActions = columns.filter(col => {
-        return col.visibility && col.action
-      }).map(col => {
-        if (isBlank(col.label)) {
-          switch (col.action) {
-            case ACTION.CREATE:
-            case ACTION.EDIT:
-            case ACTION.VIEW:
-            case ACTION.DELETE:
-              col.label = this.$t('pan.' + col.action)
-          }
-        }
-        return col
-      })
-      // 列表查询选项
-      const searchItems = []
-      for (const col of columns.filter(col => col.isCondition)) {
-        searchItems.push(await buildFormItemConfig(col, this.boMeta))
-      }
-      this.config.searchMoreItems = this.postConfigSearchMoreItems(searchItems, columns)
-      this.config.quickSearchItems = this.postConfigQuickSearchItems(searchItems, columns)
       console.log('config.gridColumns', this.config.gridColumns)
       console.log('config.gridActions', this.config.gridActions)
       console.log('config.searchMoreItems', this.config.searchMoreItems)
       console.log('config.quickSearchItems', this.config.quickSearchItems)
+      console.log('config.toolbarItems', this.config.toolbarItems)
     }).then(() => {
       this.getList()
     }).catch(err => {
       console.log('渲染Grid发生错误', err)
-    })
-    getToolbarMetadata(this.boName).then(items => {
-      items.map(item => {
-        if (item.action === ACTION.DELETES) {
-          item.btnType = 'danger'
-        }
-      })
-      this.config.toolbarItems = this.postConfigToolbarItems(items)
     })
   },
   methods: {
@@ -307,7 +273,7 @@ export default {
       this.listLoading = true
       try {
         console.log('before getList:', this.listQuery)
-        const params = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boMeta)
+        const params = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
         const response = await queryList(params, this.boName)
         console.log('after getList:', this.listQuery)
         this.list = response.data.items
@@ -342,10 +308,10 @@ export default {
       // grid 动作默认处理逻辑
       switch (action) {
         case ACTION.VIEW:
-          this.$router.push('view/' + row[this.idProp])
+          this.$router.push('view/' + row[this.config.idProp])
           break
         case ACTION.EDIT:
-          this.$router.push('edit/' + row[this.idProp])
+          this.$router.push('edit/' + row[this.config.idProp])
           break
         case ACTION.DELETE: {
           const data = {}

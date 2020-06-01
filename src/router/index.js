@@ -33,7 +33,7 @@ import nestedRouter from './modules/nested'
   }
  */
 
-const hideDemo = false
+const hideDemo = true
 
 /**
  * constantRoutes
@@ -129,6 +129,7 @@ export const constantRoutes = [
   {
     path: '/demo',
     component: Layout,
+    hidden: hideDemo,
     children: [
       {
         path: '出口单据',

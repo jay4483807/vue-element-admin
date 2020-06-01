@@ -56,31 +56,59 @@ function findSubMenus(nodeId, menuInfos) {
 
 export const panRouters = [{
   // 管理页权限资源url
-  // resUrl: 'MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_manage',
   resUrl: 'MECSS/purchasemagt/purchaseapplymagt/purchaseApplyController.spr?action=_manage',
   children: [
     {
-      path: 'manage',
+      path: 'purchase-apply/manage',
       component: () => import('@/views/purchase-apply/list'),
       name: 'PurchaseApplyList',
-      meta: { title: '采购申请管理' }
+      meta: { title: '采购订单查询', boName: 'PurchaseApply' }
     }, {
-      path: 'create',
+      path: 'purchase-apply/create',
       component: () => import('@/views/purchase-apply/create'),
       name: 'PurchaseApplyCreate',
-      meta: { title: '创建采购申请' },
+      meta: { title: '创建采购订单', boName: 'PurchaseApply' },
       hidden: true
     }, {
-      path: 'edit/:id',
+      path: 'purchase-apply/edit/:id',
       component: () => import('@/views/purchase-apply/edit'),
       name: 'PurchaseApplyEdit',
-      meta: { title: '编辑采购申请', noCache: true },
+      meta: { title: '编辑采购订单', boName: 'PurchaseApply', noCache: true },
       hidden: true
     }, {
-      path: 'view/:id',
+      path: 'purchase-apply/view/:id',
       component: () => import('@/views/purchase-apply/view'),
       name: 'PurchaseApplyView',
-      meta: { title: '查看采购申请', noCache: true },
+      meta: { title: '查看采购订单', boName: 'PurchaseApply', noCache: true },
+      hidden: true
+    }
+  ]
+}, {
+  // 管理页权限资源url
+  resUrl: 'MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_manage',
+  children: [
+    {
+      path: 'purchase-apply-front/manage',
+      component: () => import('@/views/purchase-apply/list'),
+      name: 'PurchaseApplyFrontList',
+      meta: { title: '采购申请管理', boName: 'PurchaseApplyFront' }
+    }, {
+      path: 'purchase-apply-front/create',
+      component: () => import('@/views/purchase-apply/create'),
+      name: 'PurchaseApplyFrontCreate',
+      meta: { title: '创建采购申请', boName: 'PurchaseApplyFront' },
+      hidden: true
+    }, {
+      path: 'purchase-apply-front/edit/:id',
+      component: () => import('@/views/purchase-apply/edit'),
+      name: 'PurchaseApplyFrontEdit',
+      meta: { title: '编辑采购申请', boName: 'PurchaseApplyFront', noCache: true },
+      hidden: true
+    }, {
+      path: 'purchase-apply-front/view/:id',
+      component: () => import('@/views/purchase-apply/view'),
+      name: 'PurchaseApplyFrontView',
+      meta: { title: '查看采购申请', boName: 'PurchaseApplyFront', noCache: true },
       hidden: true
     }
   ]

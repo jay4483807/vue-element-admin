@@ -75,57 +75,14 @@
       </div>
     </el-form>
     <el-tabs v-model="activeTag" class="tabs-container">
-      <el-tab-pane label="项目预览" name="project">
-        <div class="tab-main-container">
-          <el-row class="el-button-group">
-            <el-button>创建</el-button>
-            <el-button>复制创建</el-button>
-            <el-button>删除</el-button>
-            <el-button>导入模板下载</el-button>
-            <el-button>导入</el-button>
-          </el-row>
-          <el-table :data="tagData.project" border highlight-current-row height="200">
-            <el-table-column type="selection" width="55" />
-            <el-table-column prop="bnfpo" label="请求的项目" :show-overflow-tooltip="true" min-width="100px" />
-            <el-table-column label="物料" :show-overflow-tooltip="true" />
-            <el-table-column prop="orderno" label="订单号" :show-overflow-tooltip="true" />
-            <el-table-column label="订单号名称" :show-overflow-tooltip="true" min-width="100px" />
-            <el-table-column prop="txz01" label="品名描述" :show-overflow-tooltip="true" />
-            <el-table-column prop="mpotext" label="物料采购文本" :show-overflow-tooltip="true" min-width="110px" />
-            <el-table-column prop="menge" label="申请数量" :show-overflow-tooltip="true" />
-            <el-table-column prop="meins" label="基本计量单位" :show-overflow-tooltip="true" min-width="110px" />
-            <el-table-column prop="preis" label="评估价格" :show-overflow-tooltip="true" />
-            <el-table-column prop="matkl" label="物料组" :show-overflow-tooltip="true" />
-            <el-table-column label="删除标识" :show-overflow-tooltip="true" />
-            <el-table-column prop="ekgrp" label="采购组" :show-overflow-tooltip="true" />
-            <el-table-column prop="ekgrp_text" label="采购组名称" :show-overflow-tooltip="true" min-width="100px" />
-            <el-table-column width="90px" prop="lfdatfront" label="交货日期" :show-overflow-tooltip="true" />
-            <el-table-column label="操作" width="240px">
-              <div class="el-button-group">
-                <el-button type="primary">编辑</el-button>
-                <el-button type="primary">查看</el-button>
-                <el-button type="primary">删除</el-button>
-              </div>
-            </el-table-column>
-          </el-table>
-        </div>
-      </el-tab-pane>
-      <el-tab-pane label="附件" name="attachment">
-        <div class="tab-main-container">
-          <el-row class="el-button-group">
-            <el-button>上传</el-button>
-            <el-button>删除</el-button>
-          </el-row>
-          <el-table :data="tagData.attachment" border highlight-current-row height="200">
-            <el-table-column type="selection" width="55" />
-            <el-table-column label="原文件名" />
-            <el-table-column label="附件描述" />
-            <el-table-column label="创建人" />
-            <el-table-column label="创建日期" />
-            <el-table-column label="最后修改人" />
-            <el-table-column label="最后修改日期" />
-          </el-table>
-        </div>
+      <el-tab-pane v-for="(subConfig,index) of config.subBos" :key="index" :label="subConfig.label" :name="'tag_'+index">
+        <pr-bo-grid
+          class="tab-main-container"
+          toolbar-class="el-button-group"
+          :bo-name="subConfig.boName"
+          :default-condition="subConfig.defaultCondition || ''"
+          @toolbarClick="subBoToolbarClick(subConfig,$event)"
+        />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -133,15 +90,23 @@
 
 <script>
 import Sticky from '@/components/Sticky/index'
-import { fetchFormData, getBoMetadata, getFormColumns, getFormToolbar } from '@/api/pan'
+import {
+  buildFormItemConfig,
+  fetchFormData,
+  getBoInfo,
+  getBoProperties,
+  getFormColumns,
+  getFormToolbar
+} from '@/api/pan'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
 import { ACTION, UI_TYPE } from '@/constants'
-import { buildFormItemConfig, parseDate, parseDateTime } from '@/utils/pan'
+import { parseDate, parseDateTime } from '@/utils/pan'
 import request from '@/utils/request'
+import PrBoGrid from '@/components/pro/PrBoGrid'
 
 export default {
   name: 'PurchaseApplyDetail',
-  components: { Sticky, PrSearchHelper },
+  components: { Sticky, PrSearchHelper, PrBoGrid },
   props: {
     editable: {
       type: Boolean,
@@ -161,14 +126,16 @@ export default {
       form: {},
       rules: {},
       tempRoute: {},
-      activeTag: 'project',
+      activeTag: '',
+      subBoData: [],
       tagData: {
         project: [],
         attachment: []
       },
       config: {
         formRowColumns: [],
-        toolbarItems: []
+        toolbarItems: [],
+        subBos: []
       }
     }
   },
@@ -176,18 +143,15 @@ export default {
     this.UI_TYPE = UI_TYPE
   },
   created() {
-    getBoMetadata(this.boName).then(boMeta => {
-      this.boMeta = boMeta
-      for (const prop of Object.keys(boMeta)) {
-        if (boMeta[prop].idProp === true) {
-          this.idProp = prop
-          break
-        }
-      }
+    getBoProperties(this.boName).then(boProps => {
+      this.boProps = boProps
+      console.log('获取业务对象属性信息:', this.boProps)
+      return getBoInfo(this.boName)
+    }).then(boInfo => {
+      this.idProp = boInfo.idProp
       if (!this.idProp) {
         console.warn('未找到业务对象[' + this.boName + ']的id属性')
       }
-      console.log('获取业务对象属性信息:', this.boMeta)
       return getFormToolbar(this.boName)
     }).then((items) => {
       this.config.toolbarItems = items.filter(item => {
@@ -205,6 +169,7 @@ export default {
         }
         return item
       })
+      console.log('获取工具栏配置:', this.config.toolbarItems)
       return getFormColumns(this.boName)
     }).then(async columns => {
       columns = columns.filter(col => col.visibility).sort((col1, col2) => col1.rowNo - col2.rowNo || col1.colNo - col2.colNo)
@@ -213,7 +178,7 @@ export default {
       const rules = {}
       const formItems = {}
       for (const col of columns) {
-        const item = await buildFormItemConfig(col, this.boMeta)
+        const item = await buildFormItemConfig(col, this.boProps)
         if (item.required) {
           rules[item.prop] = [
             { required: true, trigger: 'blur', message: '请输入' + item.label }
@@ -246,6 +211,17 @@ export default {
       this.config.formRowColumns = rowCols
       console.log('get formRowColumns', rowCols, rules)
     }).then(() => {
+      // 查找子业务对象
+      const arr = []
+      for (const property of Object.values(this.boProps)) {
+        if (property.subBoName) {
+          arr.push(this.buildSubBoConfig(property.subBoName))
+        }
+      }
+      return Promise.all(arr)
+    }).then((subBoConfigs) => {
+      this.config.subBos = subBoConfigs
+      this.activeTag = 'tag_0'
       if (this.id) {
         this.fetchData(this.id)
       }
@@ -257,11 +233,25 @@ export default {
     this.tempRoute = Object.assign({}, this.$route)
   },
   methods: {
+    async buildSubBoConfig(subBoName) {
+      const subBoInfo = await getBoInfo(subBoName)
+      const boInfo = await getBoInfo(this.boName)
+      let defaultCondition
+      if (subBoName === 'Attachement') { // 附件特殊处理
+        defaultCondition = '%20YATTACHEMENT.BUSINESSID=\'' + this.id + '\''
+      } else {
+        defaultCondition = '%20' + subBoInfo.tableName + '.' + boInfo.props[boInfo.idProp].colname + '=\'' + this.id + '\''
+      }
+      return {
+        boName: subBoName,
+        label: (await getBoInfo(subBoName)).boText,
+        defaultCondition
+      }
+    },
     fetchData(id) {
       fetchFormData(this.boName, id).then(formData => {
         this.form = this.formatFormData(formData)
       })
-      return
       // fetchProjectList(this.id).then(rsp => {
       //   this.tagData.project = rsp.data.items
       // })
@@ -354,6 +344,9 @@ export default {
           console.warn('按钮[' + item.label + ']未配置对应的处理方法')
         }
       }
+    },
+    subBoToolbarClick(subConfig, event) {
+      console.log('>>>>>>>>>>>subBoToolbarClick', subConfig, event)
     }
   }
 }
