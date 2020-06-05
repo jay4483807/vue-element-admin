@@ -78,47 +78,16 @@
         <el-button v-waves class="filter-item" type="primary" @click="clearSearch">清空</el-button>
       </div>
     </div>
-
-    <div class="filter-container">
-      <el-button
-        v-for="(item,index) of config.toolbarItems"
-        :key="index"
-        v-waves
-        class="filter-item"
-        :type="item.btnType||'primary'"
-        @click="_toolbarItemClick(item)"
-      >{{ item.label }}</el-button>
-    </div>
-    <el-table v-if="config.gridColumns.length>0" v-loading="listLoading" :data="list" header-cell-class-name="table-header" fit style="width: 100%" height="600" @selection-change="_handleSelectionChange">
-      <el-table-column type="selection" width="45" />
-      <el-table-column
-        v-for="(col,index) of config.gridColumns"
-        :key="index"
-        :prop="col.prop"
-        :show-overflow-tooltip="true"
-        :min-width="col.width || ''"
-        align="center"
-        :label="col.label"
-        :formatter="col.formatter"
-      />
-      <el-table-column v-if="config.gridActions.length>0" v-slot="{row}" :width="68*config.gridActions.length+60" align="center" label="操作" fixed="right">
-        <div class="el-button-group">
-          <el-button
-            v-for="(act,index) of config.gridActions"
-            :key="index"
-            type="primary"
-            size="small"
-            @click="_gridAction(act.action, row)"
-          >{{ act.label }}</el-button>
-        </div>
-      </el-table-column>
-    </el-table>
-    <pagination
-      v-show="total>0"
-      :total="total"
-      :page.sync="listQuery.page"
-      :limit.sync="listQuery.limit"
-      @pagination="getList"
+    <pr-bo-grid
+      ref="grid"
+      :bo-name="boName"
+      toolbar-class="filter-container"
+      :default-condition="listQuery.defaultCondition"
+      :order-sql="listQuery.orderSql"
+      :where-sql="listQuery.whereSql"
+      :auto-load="false"
+      @selectionChange="_handleSelectionChange"
+      @rowClick="_rowClick"
     />
     <el-dialog title="高级查询" width="600px" :visible.sync="dialogSearchMoreVisible" class="search-more-dialog">
       <el-form :model="listQuery" label-width="120px">
@@ -153,31 +122,27 @@
 </template>
 
 <script>
-import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
 import {
-  queryList,
   buildQueryParams,
-  buildGridConfig
+  buildGridConfig, getBoProperties
 } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
 import request from '@/utils/request'
 import { UI_TYPE, ACTION } from '@/constants.js'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
+import PrBoGrid from '@/components/pro/PrBoGrid'
 
 export default {
   name: 'PurchaseApplyList',
-  components: { PrSearchHelper, Pagination },
+  components: { PrBoGrid, PrSearchHelper },
   directives: { waves },
   data() {
     return {
       // 业务对象名
-      boName: '',
+      boName: this.$route.meta && this.$route.meta.boName || '',
       list: null,
       total: 0,
-      listLoading: true,
       listQuery: {
-        page: 1,
-        limit: 20,
         whereSql: '',
         defaultCondition: '( 1=1 AND FORMTYPE IN (\'PO\',\'PRPO\'))',
         orderSql: 'CREATETIME DESC'
@@ -199,15 +164,18 @@ export default {
     this.UI_TYPE = UI_TYPE
   },
   created() {
-    if (this.$route.meta && this.$route.meta.boName) {
-      this.boName = this.$route.meta.boName
-    }
-    buildGridConfig(this.boName, this).then(config => {
+    getBoProperties(this.boName).then(boProps => {
+      this.boProps = boProps
+      return buildGridConfig(this.boName, this)
+    }).then(config => {
       config.searchMoreItems = this.postConfigSearchMoreItems(config.searchItems)
       config.quickSearchItems = this.postConfigQuickSearchItems(config.searchItems)
       this.config = {
         ...this.config,
         ...config
+      }
+      for (const item of [...this.config.searchMoreItems, ...this.config.quickSearchItems]) {
+        this.$set(this.listQuery, item.prop, '')
       }
       console.log('config.gridColumns', this.config.gridColumns)
       console.log('config.gridActions', this.config.gridActions)
@@ -270,19 +238,8 @@ export default {
       return items
     },
     async getList() {
-      this.listLoading = true
-      try {
-        console.log('before getList:', this.listQuery)
-        const params = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
-        const response = await queryList(params, this.boName)
-        console.log('after getList:', this.listQuery)
-        this.list = response.data.items
-        this.total = response.data.total
-        this.listLoading = false
-      } catch (err) {
-        console.log('拉取列表数据发生错误', err)
-        this.listLoading = false
-      }
+      const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boProps || {})
+      this.$refs.grid.load(queryParams)
     },
     columnFormatter(row, column, cellValue, index) {
       if (cellValue === 'Y') {
@@ -301,7 +258,7 @@ export default {
         return true
       }
     },
-    _gridAction(action, row) {
+    _rowClick([action, row]) {
       if (this.gridAction(action, row)) {
         return
       }

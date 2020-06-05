@@ -208,64 +208,57 @@ async function fetchFormColumns(boName) {
   })
 }
 
-export async function buildQueryParams(items, listQuery, boName) {
-  const boProps = await getBoProperties(boName)
-  const params = {
-    ...listQuery
-  }
+export function buildQueryParams(items, itemParams, boProps) {
+  const params = {}
   for (const item of items) {
-    buildQueryParamsOfItem(item, params[item.prop], params, boProps)
-  }
-  for (const item of items) {
-    // 不能在前面先删除属性，否则遇到重复的item会丢失数据
-    delete params[item.prop]
+    buildQueryParamsOfItem(item, itemParams[item.prop], params, boProps)
   }
   return params
 }
 
-function buildQueryParamsOfItem(item, value, listQuery, boMeta) {
-  const property = boMeta[item.prop]
+function buildQueryParamsOfItem(item, value, params, boProps) {
+  const property = boProps[item.prop]
   if (!property) {
     console.log('找不到属性[' + item.prop + ']对应的属性', item)
     return
   }
   value = value || ''
-  listQuery[item.prop + '.option'] = item.option || 'like'
+  params[item.prop + '.option'] = item.option || 'like'
   switch (item.uiType) {
     case UI_TYPE.DATE: {
-      listQuery[item.prop + '.fieldValue'] = value && moment(value).format(FORMAT.DATE)
-      listQuery[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
-      listQuery[item.prop + '.dataType'] = item.dataType || 'D'
+      params[item.prop + '.fieldValue'] = value && moment(value).format(FORMAT.DATE)
+      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
+      params[item.prop + '.dataType'] = 'D'
       break
     }
     case UI_TYPE.DATE_TIME: {
-      listQuery[item.prop + '.fieldValue'] = value && moment(value).format(FORMAT.DATE_TIME)
-      listQuery[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
-      listQuery[item.prop + '.dataType'] = item.dataType || 'D'
+      params[item.prop + '.fieldValue'] = value && moment(value).format(FORMAT.DATE_TIME)
+      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
+      params[item.prop + '.dataType'] = 'D'
       break
     }
     case UI_TYPE.DATE_RANGE: {
-      listQuery[item.prop + '.isRangeValue'] = true
-      listQuery[item.prop + '.minValue'] = value && moment(value[0]).format(FORMAT.DATE)
-      listQuery[item.prop + '.maxValue'] = value && moment(value[1]).format(FORMAT.DATE)
-      listQuery[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
-      listQuery[item.prop + '.dataType'] = item.dataType || 'D'
+      params[item.prop + '.isRangeValue'] = true
+      params[item.prop + '.minValue'] = value && moment(value[0]).format(FORMAT.DATE)
+      params[item.prop + '.maxValue'] = value && moment(value[1]).format(FORMAT.DATE)
+      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
+      params[item.prop + '.dataType'] = 'D'
       break
     }
     case UI_TYPE.DATE_TIME_RANGE: {
-      listQuery[item.prop + '.isRangeValue'] = true
-      listQuery[item.prop + '.minValue'] = value && moment(value[0]).format(FORMAT.DATE_TIME)
-      listQuery[item.prop + '.maxValue'] = value && moment(value[1]).format(FORMAT.DATE_TIME)
-      listQuery[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
-      listQuery[item.prop + '.dataType'] = item.dataType || 'D'
+      params[item.prop + '.isRangeValue'] = true
+      params[item.prop + '.minValue'] = value && moment(value[0]).format(FORMAT.DATE_TIME)
+      params[item.prop + '.maxValue'] = value && moment(value[1]).format(FORMAT.DATE_TIME)
+      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
+      params[item.prop + '.dataType'] = 'D'
       break
     }
     case UI_TYPE.SELECT:
     case UI_TYPE.TEXT:
     default: {
-      listQuery[item.prop + '.fieldValue'] = value
-      listQuery[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
-      listQuery[item.prop + '.dataType'] = item.dataType || 'S'
+      params[item.prop + '.fieldValue'] = value
+      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
+      params[item.prop + '.dataType'] = 'S'
     }
   }
 }
@@ -379,6 +372,7 @@ export async function buildGridConfig(boName, option = {}) {
   const boInfo = await getBoInfo(boName)
   config.idProp = boInfo.idProp
   const boProps = await getBoProperties(boName)
+  const boMethods = await getBoMethod(boName)
   if (!config.idProp) {
     console.error('未找到业务对象[' + boName + ']的id属性')
   }
@@ -395,6 +389,9 @@ export async function buildGridConfig(boName, option = {}) {
   config.gridActions = columns.filter(col => {
     return col.visibility && col.action
   }).map(col => {
+    if (boMethods[col.action]) {
+      col.label = boMethods[col.action].label || col.label
+    }
     if (isBlank(col.label)) {
       switch (col.action) {
         case ACTION.CREATE:

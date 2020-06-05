@@ -16,7 +16,7 @@ export function generateRoutesByMenusData(menusData) {
     route.children = generateSubRoutes(e.MENUID, menusData.menuinfo)
     routes.push(route)
   })
-  console.log('generateRoutesByMenusData:', routes)
+  console.log('生成菜单数据:', routes)
   return routes
 }
 
@@ -109,6 +109,35 @@ export const panRouters = [{
       component: () => import('@/views/purchase-apply/view'),
       name: 'PurchaseApplyFrontView',
       meta: { title: '查看采购申请', boName: 'PurchaseApplyFront', noCache: true },
+      hidden: true
+    }
+  ]
+}, {
+  // 人员定位卡申请
+  resUrl: 'MECSS/administration/perlocatcard/perLocatCardController.spr?action=_manage',
+  children: [
+    {
+      path: 'per-locat-card/manage',
+      component: () => import('@/views/purchase-apply/list'),
+      name: 'PerLocatCardList',
+      meta: { title: '人员定位卡申请', boName: 'PerLocatCard' }
+    }, {
+      path: 'per-locat-card/create',
+      component: () => import('@/views/purchase-apply/create'),
+      name: 'PerLocatCardCreate',
+      meta: { title: '创建人员定位卡申请', boName: 'PerLocatCard' },
+      hidden: true
+    }, {
+      path: 'per-locat-card/edit/:id',
+      component: () => import('@/views/purchase-apply/edit'),
+      name: 'PerLocatCardEdit',
+      meta: { title: '编辑人员定位卡申请', boName: 'PerLocatCard', noCache: true },
+      hidden: true
+    }, {
+      path: 'per-locat-card/view/:id',
+      component: () => import('@/views/purchase-apply/view'),
+      name: 'PerLocatCardView',
+      meta: { title: '查看人员定位卡申请', boName: 'PerLocatCard', noCache: true },
       hidden: true
     }
   ]

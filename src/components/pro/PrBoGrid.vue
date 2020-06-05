@@ -38,7 +38,7 @@
       :total="total"
       :page.sync="listQuery.page"
       :limit.sync="listQuery.limit"
-      @pagination="getList"
+      @pagination="load"
     />
   </div>
 </template>
@@ -76,6 +76,10 @@ export default {
     toolbarClass: {
       type: String,
       default: 'el-button-group'
+    },
+    autoLoad: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
@@ -101,11 +105,13 @@ export default {
       ...this.config,
       ...await buildGridConfig(this.boName, this)
     }
+    if (this.autoLoad) {
+      this.load()
+    }
     console.log('构造Grid配置：', this.config)
-    this.getList()
   },
   methods: {
-    async getList() {
+    async load(queryParams = {}) {
       this.listLoading = true
       try {
         const params = {
@@ -113,7 +119,8 @@ export default {
           ...this.queryParams,
           defaultCondition: this.defaultCondition,
           whereSql: this.whereSql,
-          orderSql: this.orderSql
+          orderSql: this.orderSql,
+          ...queryParams
         }
         const response = await queryList(params, this.boName)
         this.list = response.data.items
@@ -126,9 +133,13 @@ export default {
     },
     _handleSelectionChange(rows) {
       this.selectedRows = rows
+      this.$emit('selectionChange', [...this.selectedRows])
     },
     _toolbarItemClick(item) {
       this.$emit('toolbarClick', item)
+    },
+    _gridAction(action, row) {
+      this.$emit('rowClick', [action, row])
     }
   }
 }

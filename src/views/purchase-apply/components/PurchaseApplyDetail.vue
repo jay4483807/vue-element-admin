@@ -346,7 +346,6 @@ export default {
       }
     },
     subBoToolbarClick(subConfig, event) {
-      console.log('>>>>>>>>>>>subBoToolbarClick', subConfig, event)
     }
   }
 }
