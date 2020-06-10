@@ -83,6 +83,7 @@ export async function getBoInfo(boName) {
       }
     }
     boInfo.props = boProps
+    console.log('抓取业务对象信息：' + boName, boInfo)
     return boInfo
   })
 }
@@ -117,8 +118,7 @@ export async function getFormToolbar(boName) {
         return rsp.data.map(item => {
           return {
             ...(methods[item.methodname] || {}),
-            action: item.methodname,
-            label: item.methoddesc
+            action: item.methodname
           }
         })
       })
@@ -208,7 +208,8 @@ async function fetchFormColumns(boName) {
   })
 }
 
-export function buildQueryParams(items, itemParams, boProps) {
+export async function buildQueryParams(items, itemParams, boName) {
+  const boProps = await getBoProperties(boName)
   const params = {}
   for (const item of items) {
     buildQueryParamsOfItem(item, itemParams[item.prop], params, boProps)
@@ -413,6 +414,9 @@ export async function buildGridConfig(boName, option = {}) {
   config.toolbarItems = (await getToolbarMetadata(boName)).map(item => {
     if (item.action === ACTION.DELETES) {
       item.btnType = 'danger'
+    }
+    if (boMethods[item.action]) {
+      item.label = boMethods[item.action].label
     }
     return item
   })

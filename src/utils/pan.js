@@ -1,3 +1,6 @@
+import moment from 'moment'
+import { FORMAT } from '@/constants'
+
 export function isBlank(str) {
   if (typeof str === 'string') {
     return str === '' || str.match(/^\s*$/)
@@ -20,11 +23,19 @@ export function transNumber(value, defaultValue = 0) {
 
 export function parseDate(dateStr) {
   if (isBlank(dateStr)) { return null }
-  return new Date(dateStr.substr(0, 4), dateStr.substr(4, 2), dateStr.substr(6, 2))
+  return moment(dateStr, FORMAT.DATE)
 }
 
 export function parseDateTime(dateStr) {
   if (isBlank(dateStr)) { return null }
-  return new Date(dateStr.substr(0, 4), dateStr.substr(4, 2), dateStr.substr(6, 2), dateStr.substr(8, 2), dateStr.substr(10, 2), dateStr.substr(12, 2))
+  return moment(dateStr, FORMAT.DATE_TIME)
+}
+
+export function toDateStr(date) {
+  return moment(date).format(FORMAT.DATE)
+}
+
+export function toDateTimeStr(date) {
+  return moment(date).format(FORMAT.DATE_TIME)
 }
 

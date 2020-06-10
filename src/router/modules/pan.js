@@ -1,11 +1,12 @@
 import Layout from '@/layout'
+import Menu from '@/layout/menu'
 import building from '@/views/error-page/building'
 
 export function generateRoutesByMenusData(menusData) {
   const routes = []
   menusData.firstmenu.forEach(e => {
     const route = {
-      path: '/' + e.MENUDESC,
+      path: '/' + e.MENUID,
       component: Layout,
       name: e.MENUID,
       meta: {
@@ -24,15 +25,25 @@ function generateSubRoutes(menuId, menuInfos) {
   const subRoutes = []
   const menus = findSubMenus(menuId, menuInfos)
   for (const menu of menus) {
-    let route = {
-      path: menu.NODEDESC,
-      component: building,
-      meta: { title: menu.NODEDESC, nodeId: menu.NODEID, url: menu.URL }
-    }
+    let route
     if (!menu.URL) {
       // 没有URL，说明是文件夹
-      route.children = generateSubRoutes(menu.NODEID, menuInfos)
+      route = {
+        path: '/' + menu.NODEID,
+        component: Menu,
+        name: menu.NODEID,
+        meta: {
+          title: menu.NODEDESC,
+          nodeId: menu.NODEID
+        },
+        children: generateSubRoutes(menu.NODEID, menuInfos)
+      }
     } else {
+      route = {
+        path: menu.NODEDESC,
+        component: building,
+        meta: { title: menu.NODEDESC, nodeId: menu.NODEID, url: menu.URL }
+      }
       for (const r of panRouters) {
         if (r.resUrl === menu.URL) {
           subRoutes.push(...r.children)
@@ -138,6 +149,35 @@ export const panRouters = [{
       component: () => import('@/views/purchase-apply/view'),
       name: 'PerLocatCardView',
       meta: { title: '查看人员定位卡申请', boName: 'PerLocatCard', noCache: true },
+      hidden: true
+    }
+  ]
+}, {
+  // 一般文件使用公司印章申请
+  resUrl: 'MECSS/administration/generalstamp/generalStampController.spr?action=_manage',
+  children: [
+    {
+      path: 'general-stamp/manage',
+      component: () => import('@/views/purchase-apply/list'),
+      name: 'GeneralStamp',
+      meta: { title: '一般文件使用公司印章申请', boName: 'GeneralStamp' }
+    }, {
+      path: 'general-stamp/create',
+      component: () => import('@/views/purchase-apply/create'),
+      name: 'GeneralStampCreate',
+      meta: { title: '创建一般文件使用公司印章申请', boName: 'GeneralStamp' },
+      hidden: true
+    }, {
+      path: 'general-stamp/edit/:id',
+      component: () => import('@/views/purchase-apply/edit'),
+      name: 'GeneralStampEdit',
+      meta: { title: '编辑一般文件使用公司印章申请', boName: 'GeneralStamp', noCache: true },
+      hidden: true
+    }, {
+      path: 'general-stamp/view/:id',
+      component: () => import('@/views/purchase-apply/view'),
+      name: 'GeneralStampView',
+      meta: { title: '查看一般文件使用公司印章申请', boName: 'GeneralStamp', noCache: true },
       hidden: true
     }
   ]

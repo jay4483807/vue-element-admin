@@ -34,6 +34,10 @@ export default {
       type: Boolean,
       default: false
     },
+    readonly: {
+      type: Boolean,
+      default: false
+    },
     value: [String, Number, Array]
   },
   data() {
@@ -59,7 +63,7 @@ export default {
   },
   methods: {
     openSearchHelpDialog() {
-      this.showDialog = true
+      if (!this.readonly) { this.showDialog = true }
     },
     confirmSelected(rows) {
       this.selectedRows = rows

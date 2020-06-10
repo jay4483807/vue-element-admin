@@ -28,7 +28,7 @@
                 v-else-if="item.uiType===UI_TYPE.DATE"
                 v-model="form[item.prop]"
                 type="date"
-                :editable="item.readOnly"
+                :readonly="item.readOnly"
               />
               <el-date-picker
                 v-else-if="item.uiType===UI_TYPE.DATE_TIME"
@@ -60,7 +60,7 @@
                 v-else-if="item.uiType===UI_TYPE.SELECT"
                 v-model="form[item.prop]"
                 clearable
-                :readonly="item.readOnly"
+                :disabled="item.readOnly"
               >
                 <el-option v-for="opt of item.options" :key="opt.value" :label="opt.text" :value="opt.value" />
               </el-select>
@@ -82,9 +82,17 @@
           :bo-name="subConfig.boName"
           :default-condition="subConfig.defaultCondition || ''"
           @toolbarClick="subBoToolbarClick(subConfig,$event)"
+          @rowClick="subBoRowClick(subConfig,$event)"
         />
       </el-tab-pane>
     </el-tabs>
+    <el-dialog :title="subBoFormDialog.title" :visible="subBoFormDialog.show" :show-close="true" :append-to-body="true" width="70%">
+      <pr-bo-form :bo-name="subBoFormDialog.boName" />
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="subBoFormDialog.show = false">取 消</el-button>
+        <el-button type="primary" @click="subBoFormDialogConfirm">确 定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -100,13 +108,14 @@ import {
 } from '@/api/pan'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
 import { ACTION, UI_TYPE } from '@/constants'
-import { parseDate, parseDateTime } from '@/utils/pan'
+import { isBlank, parseDate, parseDateTime, toDateStr, toDateTimeStr } from '@/utils/pan'
 import request from '@/utils/request'
 import PrBoGrid from '@/components/pro/PrBoGrid'
+import PrBoForm from '@/components/pro/PrBoForm'
 
 export default {
   name: 'PurchaseApplyDetail',
-  components: { Sticky, PrSearchHelper, PrBoGrid },
+  components: { PrBoForm, Sticky, PrSearchHelper, PrBoGrid },
   props: {
     editable: {
       type: Boolean,
@@ -136,7 +145,18 @@ export default {
         formRowColumns: [],
         toolbarItems: [],
         subBos: []
+      },
+      subBoFormDialog: {
+        boName: '',
+        title: '',
+        show: false
       }
+    }
+  },
+  watch: {
+    'subBoFormDialog.boName': async function(boName, oldBoName) {
+      const boInfo = await getBoInfo(boName)
+      this.subBoFormDialog.title = boInfo.boText
     }
   },
   beforeCreate() {
@@ -172,6 +192,7 @@ export default {
       console.log('获取工具栏配置:', this.config.toolbarItems)
       return getFormColumns(this.boName)
     }).then(async columns => {
+      columns = this.preConfigFormColumns(columns) || columns
       columns = columns.filter(col => col.visibility).sort((col1, col2) => col1.rowNo - col2.rowNo || col1.colNo - col2.colNo)
       const rowCols = []
       const noPosColumns = []
@@ -181,8 +202,19 @@ export default {
         const item = await buildFormItemConfig(col, this.boProps)
         if (item.required) {
           rules[item.prop] = [
-            { required: true, trigger: 'blur', message: '请输入' + item.label }
+            { required: true, trigger: 'blur',
+              validator: (rule, value, callback) => {
+                if (isBlank(value)) {
+                  callback(new Error('请输入' + item.label))
+                } else {
+                  callback()
+                }
+              }
+            }
           ]
+        }
+        if (this.editable === false) {
+          item.readOnly = true
         }
         formItems[item.prop] = item
         if (item.rowNo > 0 && item.colNo > 0) {
@@ -273,6 +305,28 @@ export default {
       }
       return formData
     },
+    formatFormDataForSave(formData) {
+      const saveData = {}
+      for (const prop of Object.keys(formData)) {
+        let value = formData[prop]
+        const item = this.formItems[prop]
+        if (item) {
+          switch (item.uiType) {
+            case UI_TYPE.DATE: {
+              value = toDateStr(formData[prop])
+              break
+            }
+            case UI_TYPE.DATE_TIME: {
+              value = toDateTimeStr(formData[prop])
+              break
+            }
+          }
+        }
+        saveData[this.boName + '.' + prop] = value
+      }
+      console.log('>>>>>>>>>>>>', saveData, formData, this.formItems)
+      return saveData
+    },
     handleTagClick(tab, event) {
 
     },
@@ -280,13 +334,10 @@ export default {
       this.$refs.form.validate(valid => {
         if (valid) {
           item.loading = true
-          const submitData = {}
-          for (const prop of Object.keys(this.form)) {
-            submitData[this.boName + '.' + prop] = this.form[prop]
-          }
+          const saveData = this.formatFormDataForSave(this.form)
           request({
             url: item.url,
-            data: submitData
+            data: saveData
           }).then(rsp => {
             item.loading = false
             this.$message({
@@ -345,8 +396,25 @@ export default {
         }
       }
     },
-    subBoToolbarClick(subConfig, event) {
-    }
+    subBoToolbarClick(subConfig, item) {
+      if (item.action === ACTION.CREATE) {
+        this.subBoFormDialog.boName = subConfig.boName
+        this.subBoFormDialog.show = true
+      }
+    },
+    subBoRowClick(subConfig, [action, row]) {
+
+    },
+    preConfigFormColumns(formColumns) {
+      return formColumns.filter(col => {
+        if (col.prop === 'emergency') { return false }
+        return true
+      })
+    },
+    subBoFormDialogCancel() {
+      this.subBoFormDialog.show = false
+    },
+    subBoFormDialogConfirm() {}
   }
 }
 </script>

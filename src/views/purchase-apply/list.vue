@@ -124,7 +124,7 @@
 <script>
 import {
   buildQueryParams,
-  buildGridConfig, getBoProperties
+  buildGridConfig
 } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
 import request from '@/utils/request'
@@ -144,7 +144,8 @@ export default {
       total: 0,
       listQuery: {
         whereSql: '',
-        defaultCondition: '( 1=1 AND FORMTYPE IN (\'PO\',\'PRPO\'))',
+        // defaultCondition: '( 1=1 AND FORMTYPE IN (\'PO\',\'PRPO\'))',
+        defaultCondition: '',
         orderSql: 'CREATETIME DESC'
       },
       selectedRows: [],
@@ -164,10 +165,7 @@ export default {
     this.UI_TYPE = UI_TYPE
   },
   created() {
-    getBoProperties(this.boName).then(boProps => {
-      this.boProps = boProps
-      return buildGridConfig(this.boName, this)
-    }).then(config => {
+    buildGridConfig(this.boName, this).then(config => {
       config.searchMoreItems = this.postConfigSearchMoreItems(config.searchItems)
       config.quickSearchItems = this.postConfigQuickSearchItems(config.searchItems)
       this.config = {
@@ -238,7 +236,7 @@ export default {
       return items
     },
     async getList() {
-      const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boProps || {})
+      const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
       this.$refs.grid.load(queryParams)
     },
     columnFormatter(row, column, cellValue, index) {
