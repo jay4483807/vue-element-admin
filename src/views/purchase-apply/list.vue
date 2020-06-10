@@ -310,9 +310,6 @@ export default {
         case ACTION.DELETES:
           break
       }
-      if (item.action === ACTION.CREATE) {
-        this.$router.push('create')
-      }
     },
     _handleSelectionChange(rows) {
       this.selectedRows = rows

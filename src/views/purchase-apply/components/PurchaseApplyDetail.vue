@@ -13,7 +13,7 @@
       </sticky>
       <div class="form-main-container">
         <el-row v-for="(row,rowIndex) of config.formRowColumns" :key="rowIndex" :gutter="20" type="flex">
-          <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item.uiType===UI_TYPE.TEXT_AREA?24:12">
+          <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item.span">
             <el-form-item :label="item.label" :prop="item.prop">
               <el-date-picker
                 v-if="item.uiType===UI_TYPE.DATE_RANGE"
@@ -86,7 +86,7 @@
         />
       </el-tab-pane>
     </el-tabs>
-    <el-dialog :title="subBoFormDialog.title" :visible="subBoFormDialog.show" :show-close="true" :append-to-body="true" width="70%">
+    <el-dialog :title="subBoFormDialog.title" :visible.sync="subBoFormDialog.show" :show-close="true" :append-to-body="true" width="70%">
       <pr-bo-form :bo-name="subBoFormDialog.boName" />
       <div slot="footer" class="dialog-footer">
         <el-button @click="subBoFormDialog.show = false">取 消</el-button>
@@ -143,6 +143,7 @@ export default {
       },
       config: {
         formRowColumns: [],
+        colSize: 3,
         toolbarItems: [],
         subBos: []
       },
@@ -150,7 +151,8 @@ export default {
         boName: '',
         title: '',
         show: false
-      }
+      },
+      useRowColNo: false
     }
   },
   watch: {
@@ -216,8 +218,9 @@ export default {
         if (this.editable === false) {
           item.readOnly = true
         }
+        if (!item.span) { item.span = item.uiType === UI_TYPE.TEXT_AREA ? 24 : 24 / this.config.colSize }
         formItems[item.prop] = item
-        if (item.rowNo > 0 && item.colNo > 0) {
+        if (this.useRowColNo && item.rowNo > 0 && item.colNo > 0) {
           let row = rowCols[item.rowNo - 1]
           if (!row) {
             row = []
@@ -229,9 +232,17 @@ export default {
         }
       }
       for (const col of noPosColumns) {
-        const colSize = col.uiType === UI_TYPE.TEXT_AREA ? 2 : 1
         let row = rowCols[rowCols.length - 1]
-        if (row.length + colSize > 2) {
+        if (row) {
+          let totalSpan = 0
+          for (const c of row) {
+            totalSpan += c.span
+          }
+          if (totalSpan + col.span > 24) {
+            row = null // 超过24就换行
+          }
+        }
+        if (!row) {
           row = []
           rowCols[rowCols.length] = row
         }
