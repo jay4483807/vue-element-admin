@@ -146,7 +146,7 @@ export default {
         whereSql: '',
         // defaultCondition: '( 1=1 AND FORMTYPE IN (\'PO\',\'PRPO\'))',
         defaultCondition: '',
-        orderSql: 'CREATETIME DESC'
+        orderSql: ''
       },
       selectedRows: [],
       dialogSearchMoreVisible: false,
