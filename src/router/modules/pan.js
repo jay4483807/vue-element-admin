@@ -1,6 +1,5 @@
 import Layout from '@/layout'
 import Menu from '@/layout/menu'
-import building from '@/views/error-page/building'
 
 export function generateRoutesByMenusData(menusData) {
   const routes = []
@@ -25,10 +24,9 @@ function generateSubRoutes(menuId, menuInfos) {
   const subRoutes = []
   const menus = findSubMenus(menuId, menuInfos)
   for (const menu of menus) {
-    let route
     if (!menu.URL) {
       // 没有URL，说明是文件夹
-      route = {
+      subRoutes.push({
         path: '/' + menu.NODEID,
         component: Menu,
         name: menu.NODEID,
@@ -37,22 +35,48 @@ function generateSubRoutes(menuId, menuInfos) {
           nodeId: menu.NODEID
         },
         children: generateSubRoutes(menu.NODEID, menuInfos)
-      }
+      })
     } else {
-      route = {
-        path: menu.NODEDESC,
-        component: building,
-        meta: { title: menu.NODEDESC, nodeId: menu.NODEID, url: menu.URL }
-      }
+      let matchRoutes = false
       for (const r of panRouters) {
         if (r.resUrl === menu.URL) {
           subRoutes.push(...r.children)
-          route = undefined
+          matchRoutes = true
           break
         }
       }
+      if (!matchRoutes) {
+        const path = menu.NODEID
+        const boName = menu.BONAME
+        const boText = menu.DESCRIPTION
+        subRoutes.push(...[
+          {
+            path: path + '/manage',
+            component: () => import('@/views/purchase-apply/list'),
+            name: boName + 'List',
+            meta: { title: menu.NODEDESC, boName: boName }
+          }, {
+            path: path + '/create',
+            component: () => import('@/views/purchase-apply/create'),
+            name: boName + 'Create',
+            meta: { title: '创建' + boText, boName: boName },
+            hidden: true
+          }, {
+            path: path + '/edit/:id',
+            component: () => import('@/views/purchase-apply/edit'),
+            name: boName + 'Edit',
+            meta: { title: '编辑' + boText, boName: boName, noCache: true },
+            hidden: true
+          }, {
+            path: path + '/view/:id',
+            component: () => import('@/views/purchase-apply/view'),
+            name: boName + 'View',
+            meta: { title: '查看' + boText, boName: boName, noCache: true },
+            hidden: true
+          }
+        ])
+      }
     }
-    if (route) { subRoutes.push(route) }
   }
   return subRoutes
 }
