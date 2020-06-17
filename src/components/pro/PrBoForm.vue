@@ -1,7 +1,8 @@
 <template>
-  <el-form ref="form" label-width="140px" :inline="false" label-position="right" :model="form" :rules="rules" class="form-container">
+  <el-form ref="form" :label-width="labelWidth" :inline="false" label-position="right" :model="form" :rules="rules" class="form-container">
+    <slot name="top" />
     <div class="form-main-container">
-      <el-row v-for="(row,rowIndex) of config.formRowColumns" :key="rowIndex" :gutter="20" type="flex">
+      <el-row v-for="(row,rowIndex) of config.formRowColumns" :key="rowIndex" type="flex">
         <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item.span">
           <el-form-item :label="item.label" :prop="item.prop">
             <el-date-picker
@@ -11,19 +12,19 @@
               start-placeholder="开始日期"
               range-separator="-"
               end-placeholder="结束日期"
-              :readonly="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             />
             <el-date-picker
               v-else-if="item.uiType===UI_TYPE.DATE"
               v-model="form[item.prop]"
               type="date"
-              :readonly="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             />
             <el-date-picker
               v-else-if="item.uiType===UI_TYPE.DATE_TIME"
               v-model="form[item.prop]"
               type="datetime"
-              :readonly="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             />
             <el-date-picker
               v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
@@ -32,7 +33,7 @@
               start-placeholder="i开始时间"
               range-separator="-"
               end-placeholder="结束日期"
-              :readonly="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             />
             <pr-search-helper
               v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
@@ -43,20 +44,20 @@
               :display-field="item.searchHelpDisplayFiled"
               :default-condition="item.defaultCondition"
               :sort-columns="item.sortColumns"
-              :readonly="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             />
             <el-select
               v-else-if="item.uiType===UI_TYPE.SELECT"
               v-model="form[item.prop]"
               clearable
-              :disabled="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             >
               <el-option v-for="opt of item.options" :key="opt.value" :label="opt.text" :value="opt.value" />
             </el-select>
             <el-input
               v-else
               v-model="form[item.prop]"
-              :readonly="!editable || item.readOnly"
+              :disabled="!editable || item.editable"
             />
           </el-form-item>
         </el-col>
@@ -69,7 +70,7 @@
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
 import { UI_TYPE } from '@/constants'
 import { buildFormItemConfig, getBoInfo, getFormColumns } from '@/api/pan'
-import { isBlank } from '@/utils/pan'
+import { isBlank, parseDate, parseDateTime, toDateStr, toDateTimeStr } from '@/utils/pan'
 
 export default {
   name: 'PrBoForm',
@@ -91,17 +92,38 @@ export default {
       type: Function,
       default: (columns) => {
       }
+    },
+    labelWidth: {
+      type: String,
+      default: '140px'
+    },
+    model: {
+      type: Object,
+      default: function() {
+        return {}
+      }
     }
   },
   data() {
     return {
-      form: {},
       rules: {},
       config: {
         colSize: 3,
         formRowColumns: []
       },
+      form: {},
+      formItems: [],
       useRowColNo: false
+    }
+  },
+  computed: {
+    formComputer() {
+      return this.toFormData(this.model)
+    }
+  },
+  watch: {
+    formComputer(value) {
+      this.form = value
     }
   },
   beforeCreate() {
@@ -172,7 +194,72 @@ export default {
     console.log('get formRowColumns', rowCols, rules)
   },
   methods: {
-
+    getForm(form) {
+      return this.formatFormData(this.form)
+    },
+    getFormForSave() {
+      return this.formatFormDataForSave(this.form)
+    },
+    validate() {
+      this.$refs.form.validate(...arguments)
+    },
+    toFormData(data) {
+      const result = { ...data }
+      for (const prop of Object.keys(data)) {
+        const item = this.formItems[prop]
+        if (!item) { continue }
+        switch (item.uiType) {
+          case UI_TYPE.DATE: {
+            result[prop] = parseDate(data[prop])
+            break
+          }
+          case UI_TYPE.DATE_TIME: {
+            result[prop] = parseDateTime(data[prop])
+            break
+          }
+        }
+      }
+      return result
+    },
+    formatFormData(formData) {
+      const result = { ...formData }
+      for (const prop of Object.keys(formData)) {
+        const item = this.formItems[prop]
+        if (!item) { continue }
+        switch (item.uiType) {
+          case UI_TYPE.DATE: {
+            result[prop] = toDateStr(formData[prop])
+            break
+          }
+          case UI_TYPE.DATE_TIME: {
+            result[prop] = toDateTimeStr(formData[prop])
+            break
+          }
+        }
+      }
+      return result
+    },
+    formatFormDataForSave(formData) {
+      const resultData = {}
+      for (const prop of Object.keys(formData)) {
+        let value = formData[prop]
+        const item = this.formItems[prop]
+        if (item) {
+          switch (item.uiType) {
+            case UI_TYPE.DATE: {
+              value = toDateStr(formData[prop])
+              break
+            }
+            case UI_TYPE.DATE_TIME: {
+              value = toDateTimeStr(formData[prop])
+              break
+            }
+          }
+        }
+        resultData[this.boName + '.' + prop] = value
+      }
+      return resultData
+    }
   }
 }
 </script>

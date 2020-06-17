@@ -12,7 +12,16 @@ const service = axios.create({
   transformRequest: [function(data) {
     let ret = ''
     for (const it in data) {
-      ret += encodeURIComponent(it) + '=' + encodeURIComponent(data[it]) + '&'
+      if (data[it] instanceof Array) {
+        // 编辑页保存时，多个子对象信息使用相同的参数subObject，此处扩展支持这种特殊情况的处理
+        for (const v of data[it]) {
+          if (ret) { ret += '&' }
+          ret += encodeURIComponent(it) + '=' + encodeURIComponent(v)
+        }
+      } else {
+        if (ret) { ret += '&' }
+        ret += encodeURIComponent(it) + '=' + encodeURIComponent(data[it])
+      }
     }
     return ret
   }]
@@ -34,15 +43,6 @@ service.interceptors.request.use(
         config.headers['X-Token'] = getToken()
       }
       return config
-    }
-    if (config.method === 'post') {
-      config.transformRequest = [function(data) {
-        let ret = ''
-        for (const it in data) {
-          ret += encodeURIComponent(it) + '=' + encodeURIComponent(data[it]) + '&'
-        }
-        return ret
-      }]
     }
     return config
   },

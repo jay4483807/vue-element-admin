@@ -86,7 +86,7 @@
       :order-sql="listQuery.orderSql"
       :where-sql="listQuery.whereSql"
       :auto-load="false"
-      @selectionChange="_handleSelectionChange"
+      @selection-change="_handleSelectionChange"
       @rowClick="_rowClick"
     />
     <el-dialog title="高级查询" width="600px" :visible.sync="dialogSearchMoreVisible" class="search-more-dialog">

@@ -38,6 +38,10 @@ export default {
       type: Boolean,
       default: false
     },
+    disabled: {
+      type: Boolean,
+      default: false
+    },
     value: [String, Number, Array]
   },
   data() {
@@ -51,7 +55,12 @@ export default {
       if (this.multiSelect) {
         return this.selectedRows.map(row => row ? row[this.displayField] : '').join(', ')
       } else {
-        return (this.selectedRows && this.selectedRows[0]) ? this.selectedRows[0][this.displayField] : ''
+        const selectedRow = this.selectedRows && this.selectedRows[0]
+        if (selectedRow) {
+          return selectedRow[this.displayField]
+        } else { // 如果有value值，但是没有找到匹配的选项，直接显示value值
+          return this.value || ''
+        }
       }
     }
   },
@@ -63,7 +72,7 @@ export default {
   },
   methods: {
     openSearchHelpDialog() {
-      if (!this.readonly) { this.showDialog = true }
+      if (!this.readonly && !this.disabled) { this.showDialog = true }
     },
     confirmSelected(rows) {
       this.selectedRows = rows

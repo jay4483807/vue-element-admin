@@ -201,7 +201,7 @@ async function fetchFormColumns(boName) {
       defaultValue: transBlank(col.defaultvalue),
       visibility: transBoolean(col.visibility),
       required: transBoolean(col.nullable),
-      readOnly: transBoolean(col.readonly),
+      editable: transBoolean(col.readonly),
       colNo: transNumber(col.columnno),
       rowNo: transNumber(col.rowno)
     }
@@ -282,7 +282,7 @@ function pageQuery(url, query) {
     url,
     method: 'post',
     params: {
-      start: (query.page - 1) * query.limit,
+      start: (typeof query.start === 'number') ? query.start : (query.page - 1) * query.limit,
       limit: query.limit,
       ...query
     }

@@ -24,3 +24,9 @@ export const FORMAT = {
   DATE: 'YYYY-MM-DD',
   DATE_TIME: 'YYYY-MM-DD HH:mm:ss'
 }
+
+// PrBoGrid的使用模式
+export const GRID_MODE = {
+  DEFAULT: 'default',
+  EDIT: 'edit'
+}

@@ -27,7 +27,17 @@
         :formatter="col.formatter"
       />
     </el-table>
-    <pagination v-show="total>0" :show-selected-only="showSelectedOnly" :total="total" :page.sync="listQuery.page" :limit.sync="listQuery.limit" :selected-size="selectedRows.length" :selected-size-clickable="true" @changeShowSelectedOnly="changeShowSelectedOnly" @pagination="getList" />
+    <pagination
+      v-show="total>0"
+      :show-selected-only="showSelectedOnly"
+      :total="total"
+      :page.sync="listQuery.page"
+      :limit.sync="listQuery.limit"
+      :selected-size="selectedRows.length"
+      :selected-size-clickable="true"
+      @changeShowSelectedOnly="changeShowSelectedOnly"
+      @pagination="getList"
+    />
   </el-dialog>
 </template>
 
