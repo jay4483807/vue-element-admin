@@ -73,7 +73,7 @@
       </template>
       <div class="el-button-group">
         <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="getList">查询</el-button>
-        <el-button v-waves class="filter-item" type="primary" @click="dialogSearchMoreVisible=true">更多</el-button>
+        <el-button v-if="config.searchMoreItems.length > 0" v-waves class="filter-item" type="primary" @click="dialogSearchMoreVisible=true">更多</el-button>
         <el-button v-waves class="filter-item" type="primary" @click="clearSearch">清空</el-button>
       </div>
     </div>
@@ -81,10 +81,15 @@
       ref="grid"
       :bo-name="boName"
       toolbar-class="filter-container"
-      :query-params="listQuery"
+      :config-grid-columns="configGridColumns"
+      :config-toolbar-items="configToolbarItems"
+      :config-grid-actions="configGridActions"
       :auto-load="false"
+      :query-params="gridQueryParams"
       @selection-change="_handleSelectionChange"
       @rowBtnClick="_rowBtnClick"
+      @configOver="gridConfigOver"
+      @toolbarClick="_toolbarItemClick"
     />
     <el-dialog title="高级查询" width="600px" :visible.sync="dialogSearchMoreVisible" class="search-more-dialog">
       <el-form :model="listQuery" label-width="120px">
@@ -111,7 +116,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogSearchMoreVisible = false">取 消</el-button>
-        <el-button type="primary" @click="getList(), dialogSearchMoreVisible = false">查 询</el-button>
+        <el-button type="primary" @click="_search">查 询</el-button>
       </div>
     </el-dialog>
   </div>
@@ -119,41 +124,96 @@
 
 <script>
 import {
-  buildQueryParams,
-  buildGridConfig
+  buildQueryParams
 } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
 import request from '@/utils/request'
 import { UI_TYPE, ACTION } from '@/constants.js'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
 import PrBoGrid from '@/components/pro/PrBoGrid'
+import { executeConfig } from '@/utils/pan'
+import boComponent from '@/components/pro/mixins/boComponent'
 
 export default {
-  name: 'PurchaseApplyList',
+  name: 'ListPage',
   components: { PrBoGrid, PrSearchHelper },
   directives: { waves },
+  mixins: [boComponent],
+  props: {
+    /**
+     * 业务对象名，默认会读取当前页面路由信息里的业务对象名，可以不配
+     * 此属性目前暂不支持动态修改，在页面初始化后不可改动
+     */
+    boName: {
+      type: String,
+      default: function() {
+        return this.$route && this.$route.meta && this.$route.meta.boName || ''
+      }
+    },
+    /**
+     * 配置查询“更多”的搜索项
+     */
+    configSearchMoreItems: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * 配置快速查询的搜索项
+     */
+    configQuickSearchItems: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * 配置grid列表项
+     */
+    configGridColumns: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * 配置grid操作
+     */
+    configGridActions: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * 配置工具栏
+     */
+    configToolbarItems: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * grid默认查询条件
+     */
+    gridQueryParams: {
+      type: Object,
+      default() {
+        return {}
+      }
+    }
+  },
   data() {
     return {
-      // 业务对象名
-      boName: this.$route.meta && this.$route.meta.boName || '',
-      list: null,
-      total: 0,
       listQuery: {
-        whereSql: '',
-        // defaultCondition: '( 1=1 AND FORMTYPE IN (\'PO\',\'PRPO\'))',
-        defaultCondition: '',
-        orderSql: ''
       },
       selectedRows: [],
       dialogSearchMoreVisible: false,
       config: {
-        idProp: '',
-        gridColumns: [],
-        gridActions: [],
-        toolbarItems: [],
         searchMoreItems: [],
-        quickSearchItems: [],
-        deleteUrl: '/MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_delete'
+        quickSearchItems: []
       }
     }
   },
@@ -161,144 +221,62 @@ export default {
     this.UI_TYPE = UI_TYPE
   },
   created() {
-    console.log('created purchase-apply\\list:' + this.boName)
-    buildGridConfig(this.boName, this).then(config => {
-      config.searchMoreItems = this.configSearchMoreItems(config.searchItems)
-      config.quickSearchItems = this.configQuickSearchItems(config.searchItems)
-      this.config = {
-        ...this.config,
-        ...config
-      }
+    if (!this.boName) {
+      throw new Error('未指定当前页面对应的业务对象名')
+    }
+    console.log('创建list页面：' + this.boName)
+  },
+  methods: {
+    gridConfigOver(config) {
+      this.config.searchMoreItems = executeConfig(this.configSearchMoreItems, this, config.searchItems) || []
+      this.config.quickSearchItems = executeConfig(this.configQuickSearchItems, this, config.searchItems) || []
       for (const item of [...this.config.searchMoreItems, ...this.config.quickSearchItems]) {
         this.$set(this.listQuery, item.prop, '')
       }
-      console.log('config.gridColumns', this.config.gridColumns)
-      console.log('config.gridActions', this.config.gridActions)
       console.log('config.searchMoreItems', this.config.searchMoreItems)
       console.log('config.quickSearchItems', this.config.quickSearchItems)
-      console.log('config.toolbarItems', this.config.toolbarItems)
-    }).then(() => {
-      this.getList()
-    }).catch(err => {
-      console.log('渲染Grid发生错误', err)
-    })
-  },
-  methods: {
-    // 对Grid的列表配置数据二次处理
-    configGridColumns(columns) {
-      console.log('fetchGridMetadata:', columns)
-      columns.push({
-        prop: 'lifnr_text',
-        label: '采购供应商名称',
-        width: 120
-      })
-      return columns.filter(col => {
-        return true
-      }).map(col => {
-        if (col.prop === 'bedat' || col.prop === 'bsart') {
-          col.width = 100
-        } else if (col.prop === 'memo') {
-          col.label = '原因/用途'
-        } else if (col.prop === 'isprint') {
-          // 对列增加自定义处理
-          col.formatter = this.columnFormatter
-        } else if (col.action === '_viewProcessState') {
-          col.label = '流程状态'
-        } else if (col.action === '_changeApply') {
-          col.label = '变更'
-        }
-        col.width = Math.max(80, col.width)
-
-        return col
-      })
-    },
-    configSearchMoreItems(items, columns) {
-      return items
-    },
-    configQuickSearchItems(items, columns) {
-      for (const item of items) {
-        if (item.uiType === UI_TYPE.SEARCH_HELP) {
-          // TODO 测试需要，强制设置为多选的搜索帮助
-          item.multiSelect = true
-        }
-      }
-      return items
-    },
-    configToolbarItems(items) {
-      items.push({
-        action: '_exportExcel',
-        label: '导出Excel',
-        btnType: 'success'
-      })
-      return items
+      this.getList() // grid配置完成后立即拉取一次grid数据
     },
     async getList() {
       const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
       this.$refs.grid.load(queryParams)
     },
-    columnFormatter(row, column, cellValue, index) {
-      if (cellValue === 'Y') {
-        return '是'
-      } else if (cellValue === 'N') {
-        return '否'
-      }
-      return cellValue
+    _search() {
+      this.getList()
+      this.dialogSearchMoreVisible = false
     },
-    gridAction(action, row) {
-      if (action === '_viewProcessState') {
-        // 自定义处理流程状态
-        return true
-      } else if (action === '_changeApply') {
-        // 自定义处理变更动作
-        return true
-      }
-    },
-    _rowBtnClick({ item, row }) {
+    _rowBtnClick(event) {
+      const { item, row } = event
       const action = item.action
-      if (this.gridAction(action, row)) {
+      if (item.callback) {
         return
       }
       // grid 动作默认处理逻辑
       switch (action) {
         case ACTION.VIEW:
-          this.$router.push('view/' + row[this.config.idProp])
+          this.$router.push('view/' + row[this.idProp])
           break
         case ACTION.EDIT:
-          this.$router.push('edit/' + row[this.config.idProp])
+          this.$router.push('edit/' + row[this.idProp])
           break
         case ACTION.DELETE: {
-          const data = {}
-          data[action.prop] = row[action.prop]
-          request({
-            url: this.config.deleteUrl,
-            data: data
-          })
+          if (action.url) {
+            const data = {}
+            data[this.idProp] = row[this.idProp]
+            request({
+              url: action.url,
+              data: data
+            })
+          } else {
+            console.error('未指定方法[' + action + ']的url，无法自动完成删除动作', action)
+          }
           break
         }
       }
     },
-    toolbarItemClick(item) {
-      if (item.action === '_printApply') {
-        // 处理导出申请单
-        return true
-      } else if (item.action === ACTION.DELETES) {
-        // 处理批量删除动作
-        request({
-          url: '/MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_deletes',
-          data: {
-            purchaseApplyFrontIds: this.selectedRows.map(row => row.purchaseapplyid).join('|')
-          }
-        }).then(() => {
-          this.$message({
-            type: 'success',
-            message: '操作成功'
-          })
-        })
-        return true
-      }
-    },
-    _toolbarItemClick(item) {
-      if (this.toolbarItemClick(item)) {
+    _toolbarItemClick({ item }) {
+      if (item.callback) {
+        // 如果有配置回调，就不执行默认处理
         return
       }
       switch (item.action) {
@@ -306,18 +284,28 @@ export default {
           this.$router.push('create')
           break
         case ACTION.DELETES:
+          if (item.url) {
+            // 处理批量删除动作
+            const idsParamName = this.boName.substr(0, 1).toLowerCase() + this.boName.substr(1) + 'Ids'
+            const data = {}
+            data[idsParamName] = this.selectedRows.map(row => row[this.idProp]).join('|')
+            request({
+              url: item.url,
+              data
+            }).then(() => {
+              this.$message({
+                type: 'success',
+                message: '操作成功'
+              })
+            })
+          } else {
+            console.error('未指定方法[' + item.action + ']的url，无法自动完成删除动作', item)
+          }
           break
       }
     },
     _handleSelectionChange(rows) {
       this.selectedRows = rows
-    },
-    queryOrderNo(queryString, cb) {
-      const result = this.list.map((row) => { return { value: row.purchaseapplyno } }).filter(({ value }) => {
-        return value && (!queryString || value.toLowerCase().indexOf(queryString.toLowerCase()) === 0)
-      })
-      console.log(queryString, result)
-      cb(result)
     },
     clearSearch() {
       for (const item of [...this.config.searchMoreItems, ...this.config.quickSearchItems]) {
@@ -368,11 +356,5 @@ export default {
       }
     }
   }
-
-  /*/deep/ .table-header .cell {*/
-    /*overflow: hidden;*/
-    /*text-overflow: ellipsis;*/
-    /*white-space: nowrap;*/
-  /*}*/
 
 </style>

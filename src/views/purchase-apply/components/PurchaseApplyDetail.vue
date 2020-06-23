@@ -21,7 +21,7 @@
           class="tab-main-container"
           toolbar-class="el-button-group"
           :bo-name="subConfig.boName"
-          :default-condition="subConfig.defaultCondition || ''"
+          :query-params="subConfig.queryParams"
         />
       </el-tab-pane>
     </el-tabs>
@@ -139,7 +139,9 @@ export default {
       return {
         boName: subBoName,
         label: (await getBoInfo(subBoName)).boText,
-        defaultCondition
+        queryParams: {
+          defaultCondition
+        }
       }
     },
     fetchData(id) {

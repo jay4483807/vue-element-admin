@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import { isBlank, transBlank, transBoolean, transNumber } from '@/utils/pan'
+import { executeConfig, isBlank, transBlank, transBoolean, transNumber } from '@/utils/pan'
 import { UI_TYPE, FORMAT } from '@/constants.js'
 import moment from 'moment'
 import { ACTION } from '@/constants'
@@ -20,6 +20,68 @@ const toolbarMeta = new Map()
 const formMeta = new Map()
 const formToolbarMeta = new Map()
 const boMethods = new Map()
+
+// 业务对象信息
+export const BoInfo = {
+  boName: String,
+  boId: String,
+  // 业务对象的id属性名
+  idProp: String,
+  boText: String,
+  tableName: String,
+  // 业务对象属性的key-value结果，key为属性名，value为BoProperty
+  props: Object
+}
+// 业务对象属性
+export const BoProperty = {
+  prop: String,
+  label: String,
+  dataType: String,
+  // 对应搜索帮助信息（可选）
+  searchHelpName: String,
+  searchHelpDisplayFiled: String,
+  searchHelpValueField: String,
+  tabname: String,
+  colname: String,
+  // 对应字典表名(可选）
+  dictName: String,
+  // 是否是id属性
+  idProp: Boolean,
+  subBoName: String
+}
+// 业务对象方法/工具栏按钮
+export const BoMethod = {
+  action: String,
+  label: String,
+  url: String
+}
+// 列表项
+export const GridColumns = {
+  ...BoProperty,
+  visibility: Boolean,
+  // 指定列宽（可选）
+  width: Number,
+  // 列显示顺序
+  columnNo: String,
+  // 动作，一般对应成操作按钮（可选）
+  action: String,
+  isCondition: Boolean,
+  // 详见UI_TYPE
+  uiType: String
+}
+// 表单项
+export const FormItem = {
+  prop: String,
+  label: String,
+  // 详见UI_TYPE
+  uiType: String,
+  defaultValue: String,
+  visibility: Boolean,
+  required: Boolean,
+  editable: Boolean,
+  colNo: Number,
+  rowNo: Number
+}
 
 function boQueryGrid(boName, defaultCondition, orderSql) {
   return request({
@@ -62,7 +124,6 @@ export async function getBoInfo(boName) {
         label: col.fieldtext,
         dataType: col.datatype,
         searchHelpName: col.searchhelp,
-        searchHelpText: col.searchhelp_text,
         searchHelpDisplayFiled: col.shtextcolumn,
         searchHelpValueField: col.shsourcecolumn,
         tabname: col.tabname,
@@ -97,16 +158,66 @@ export async function getBoProperties(boName) {
   return (await getBoInfo(boName)).props
 }
 
-export async function getGridMetadata(boName) {
-  return getOrFetch(gridMeta, boName, fetchGridMetadata)
+export async function getGridColumns(boName) {
+  return getOrFetch(gridMeta, boName, async boName => {
+    const { boId } = await getBoInfo(boName)
+    const { data } = await boQueryGrid('BizGridColumn', "%20YGRIDCOLUMN.BOID='" + boId + "'", 'COLUMNNO')
+    return data.filter(col => {
+      return true
+    }).map((col) => {
+      return {
+        // 对应属性名
+        prop: col.proname,
+        // 列名
+        label: col.fieldtext,
+        visibility: transBoolean(col.visibility),
+        // 指定列宽（可选）
+        width: isBlank(col.width) ? undefined : Math.max(40, Number(col.width)),
+        // 列显示顺序
+        columnNo: (col.columnno || '').trim(),
+        // 动作，一般对应成操作按钮（可选）
+        action: transBlank(col.methodname),
+        isCondition: transBoolean(col.iscondition),
+        uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT
+      }
+    }).sort((c1, c2) => { return (c1.columnNo || '').localeCompare(c2.columnNo || '') })
+  })
 }
 
-export async function getToolbarMetadata(boName) {
-  return getOrFetch(toolbarMeta, boName, fetchToolbarMetadata)
+export async function getToolbarItems(boName) {
+  return getOrFetch(toolbarMeta, boName, async boName => {
+    const { boId } = await getBoInfo(boName)
+    const { data } = await boQueryGrid('BizGridToolbar', "%20YGRIDTOOLBAR.BOID='" + boId + "'", 'ORDERNO')
+    const methods = await getBoMethods(boName)
+    return data.sort((c1, c2) => { return (c1.orderno || '').localeCompare(c2.orderno || '') }).map(item => {
+      return methods[item.methodname] || {
+        action: item.methodname,
+        label: item.methoddesc
+      }
+    })
+  })
 }
 
-export async function getFormColumns(boName) {
-  return getOrFetch(formMeta, boName, fetchFormColumns)
+export async function getFormItems(boName) {
+  return getOrFetch(formMeta, boName, async boName => {
+    const { boId } = await getBoInfo(boName)
+    const { data } = await boQueryGrid('BizFormColumn', "%20YFORMCOLUMN.BOID='" + boId + "'", 'ROWNO,COLUMNNO')
+    return data.map(col => {
+      return {
+        // 对应属性名
+        prop: col.proname,
+        // 列名
+        label: col.fieldtext,
+        uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT,
+        defaultValue: transBlank(col.defaultvalue),
+        visibility: transBoolean(col.visibility),
+        required: transBoolean(col.nullable),
+        editable: transBoolean(col.readonly),
+        colNo: transNumber(col.columnno),
+        rowNo: transNumber(col.rowno)
+      }
+    })
+  })
 }
 
 export async function getFormToolbar(boName) {
@@ -114,11 +225,11 @@ export async function getFormToolbar(boName) {
     return getBoInfo(boName).then(({ boId }) => {
       return boQueryGrid('BizFormToolbar', "%20YFORMTOOLBAR.BOID='" + boId + "'", 'ORDERNO')
     }).then(rsp => {
-      return getBoMethod(boName).then(methods => {
-        return rsp.data.map(item => {
-          return {
-            ...(methods[item.methodname] || {}),
-            action: item.methodname
+      return getBoMethods(boName).then(methods => {
+        return rsp.data.sort((c1, c2) => { return (c1.orderno || '').localeCompare(c2.orderno || '') }).map(item => {
+          return methods[item.methodname] || {
+            action: item.methodname,
+            label: item.methoddesc
           }
         })
       })
@@ -126,7 +237,7 @@ export async function getFormToolbar(boName) {
   })
 }
 
-export async function getBoMethod(boName) {
+export async function getBoMethods(boName) {
   return getOrFetch(boMethods, boName, (boName) => {
     return getBoInfo(boName).then(({ boId }) => {
       return boQueryGrid('BizMethod', "%20YMETHOD.BOID='" + boId + "'", null)
@@ -151,61 +262,6 @@ async function getOrFetch(map, key, fetchFunc) {
     map.set(key, result)
   }
   return result
-}
-
-async function fetchGridMetadata(boName) {
-  const { boId } = await getBoInfo(boName)
-  const { data } = await boQueryGrid('BizGridColumn', "%20YGRIDCOLUMN.BOID='" + boId + "'", 'COLUMNNO')
-  return data.filter(col => {
-    return true
-  }).map((col) => {
-    return {
-      // 对应属性名
-      prop: col.proname,
-      // 列名
-      label: col.fieldtext,
-      visibility: transBoolean(col.visibility),
-      // 指定列宽（可选）
-      width: isBlank(col.width) ? undefined : Math.max(40, Number(col.width)),
-      // 列显示顺序
-      columnNo: (col.columnno || '').trim(),
-      // 动作，一般对应成操作按钮（可选）
-      action: transBlank(col.methodname),
-      isCondition: transBoolean(col.iscondition),
-      uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT
-    }
-  }).sort((c1, c2) => { return (c1.columnNo || '').localeCompare(c2.columnNo || '') })
-}
-
-async function fetchToolbarMetadata(boName) {
-  const { boId } = await getBoInfo(boName)
-  const { data } = await boQueryGrid('BizGridToolbar', "%20YGRIDTOOLBAR.BOID='" + boId + "'", 'ORDERNO')
-  return data.map(item => {
-    return {
-      action: item.methodname,
-      label: item.methoddesc
-    }
-  })
-}
-
-async function fetchFormColumns(boName) {
-  const { boId } = await getBoInfo(boName)
-  const { data } = await boQueryGrid('BizFormColumn', "%20YFORMCOLUMN.BOID='" + boId + "'", 'ROWNO,COLUMNNO')
-  return data.map(col => {
-    return {
-      // 对应属性名
-      prop: col.proname,
-      // 列名
-      label: col.fieldtext,
-      uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT,
-      defaultValue: transBlank(col.defaultvalue),
-      visibility: transBoolean(col.visibility),
-      required: transBoolean(col.nullable),
-      editable: transBoolean(col.readonly),
-      colNo: transNumber(col.columnno),
-      rowNo: transNumber(col.rowno)
-    }
-  })
 }
 
 export async function buildQueryParams(items, itemParams, boName) {
@@ -267,8 +323,8 @@ function buildQueryParamsOfItem(item, value, params, boProps) {
 export async function queryList(query, boName = '') {
   return pageQuery('/gridQueryController.spr?action=queryGrid', {
     boName,
-    defaultCondition: ' 1=1',
-    orderSql: 'CREATETIME DESC',
+    defaultCondition: '',
+    orderSql: '',
     distinctSupport: false,
     needAuthentication: false,
     editable: false,
@@ -373,25 +429,28 @@ export async function buildGridConfig(boName, option = {}) {
   const boInfo = await getBoInfo(boName)
   config.idProp = boInfo.idProp
   const boProps = await getBoProperties(boName)
-  const boMethods = await getBoMethod(boName)
+  const boMethods = await getBoMethods(boName)
   if (!config.idProp) {
     console.error('未找到业务对象[' + boName + ']的id属性')
   }
-  let columns = await getGridMetadata(boName)
-  if (option.postConfigGridColumns) {
-    columns = option.postConfigGridColumns(columns)
-  }
+  let columns = (await getGridColumns(boName)).map(col => {
+    // 复制一份配置，避免多处配置发生冲突
+    return { ...col }
+  })
+  columns = executeConfig(option.preConfigColumns, option, columns)
   config.gridColumns = columns.filter(col => {
     return col.visibility && !col.action
   }).map(col => {
     col.width = Math.max(80, col.width)
     return col
   })
+  config.gridColumns = executeConfig(option.configGridColumns, option, config.gridColumns)
   config.gridActions = columns.filter(col => {
     return col.visibility && col.action
   }).map(col => {
     if (boMethods[col.action]) {
       col.label = boMethods[col.action].label || col.label
+      col.url = boMethods[col.action].url
     }
     if (isBlank(col.label)) {
       switch (col.action) {
@@ -404,6 +463,7 @@ export async function buildGridConfig(boName, option = {}) {
     }
     return col
   })
+  config.gridActions = executeConfig(option.configGridActions, option, config.gridActions)
   // 列表查询选项
   const searchItems = []
   for (const col of columns.filter(col => col.isCondition)) {
@@ -411,26 +471,26 @@ export async function buildGridConfig(boName, option = {}) {
   }
   config.searchItems = searchItems
 
-  config.toolbarItems = (await getToolbarMetadata(boName)).map(item => {
+  config.toolbarItems = (await getToolbarItems(boName)).map(item => {
+    item = { ...item } // 复制一份配置，避免多处配置发生冲突
     if (item.action === ACTION.DELETES) {
       item.btnType = 'danger'
     }
     if (boMethods[item.action]) {
       item.label = boMethods[item.action].label
+      item.url = boMethods[item.action].url
     }
     return item
   })
-  if (option.postConfigToolbarItems) {
-    config.toolbarItems = option.postConfigToolbarItems(config.toolbarItems)
-  }
+  config.toolbarItems = executeConfig(option.configToolbarItems, option, config.toolbarItems)
   return config
 }
 
-export async function buildFormItemConfig(col, boMeta) {
-  const property = boMeta[col.prop] || {}
+export async function buildFormItemConfig(col, boProperties) {
+  const property = boProperties[col.prop] || {}
   const item = { ...property, ...col }
   if (item.uiType === UI_TYPE.SELECT) {
-    item.options = await getDict(boMeta[item.prop].dictName)
+    item.selectOptions = await getDict(boProperties[item.prop].dictName)
   }
   return item
 }

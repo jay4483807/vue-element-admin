@@ -1,5 +1,13 @@
 import Layout from '@/layout'
 import Menu from '@/layout/menu'
+import { mergeConfig } from '@/utils/pan'
+
+const PAGE = {
+  MANAGE: 'manage',
+  CREATE: 'create',
+  EDIT: 'edit',
+  VIEW: 'view'
+}
 
 export function generateRoutesByMenusData(menusData) {
   const routes = []
@@ -37,44 +45,47 @@ function generateSubRoutes(menuId, menuInfos) {
         children: generateSubRoutes(menu.NODEID, menuInfos)
       })
     } else {
-      let matchRoutes = false
-      for (const r of panRouters) {
-        if (r.resUrl === menu.URL) {
-          subRoutes.push(...r.children)
-          matchRoutes = true
-          break
-        }
-      }
-      if (!matchRoutes) {
+      const routeConfig = panRouters.find(r => r.resUrl === menu.URL)
+      if (routeConfig && routeConfig.children) {
+        subRoutes.push(...routeConfig.children)
+      } else {
         const path = menu.NODEID
         const boName = menu.BONAME
         const boText = menu.DESCRIPTION
-        subRoutes.push(...[
+        const routes = [
           {
+            page: PAGE.MANAGE,
             path: path + '/manage',
-            component: () => import('@/views/purchase-apply/list'),
+            component: () => import('@/views/pan/list'),
             name: boName + 'List',
             meta: { title: menu.NODEDESC, boName: boName }
           }, {
+            page: PAGE.CREATE,
             path: path + '/create',
             component: () => import('@/views/purchase-apply/create'),
             name: boName + 'Create',
             meta: { title: '创建' + boText, boName: boName },
             hidden: true
           }, {
+            page: PAGE.EDIT,
             path: path + '/edit/:id',
             component: () => import('@/views/purchase-apply/edit'),
             name: boName + 'Edit',
             meta: { title: '编辑' + boText, boName: boName, noCache: true },
             hidden: true
           }, {
+            page: PAGE.VIEW,
             path: path + '/view/:id',
             component: () => import('@/views/purchase-apply/view'),
             name: boName + 'View',
             meta: { title: '查看' + boText, boName: boName, noCache: true },
             hidden: true
           }
-        ])
+        ]
+        if (routeConfig && routeConfig.merge) {
+          mergeConfig(routes, routeConfig.merge, 'page')
+        }
+        subRoutes.push(...routes)
       }
     }
   }
@@ -90,70 +101,31 @@ function findSubMenus(nodeId, menuInfos) {
 }
 
 export const panRouters = [{
-  // 管理页权限资源url
+  // 采购订单申请抬头
   resUrl: 'MECSS/purchasemagt/purchaseapplymagt/purchaseApplyController.spr?action=_manage',
-  children: [
-    {
-      path: 'purchase-apply/manage',
-      component: () => import('@/views/purchase-apply/list'),
-      name: 'PurchaseApplyList',
-      meta: { title: '采购订单查询', boName: 'PurchaseApply' }
-    }, {
-      path: 'purchase-apply/create',
-      component: () => import('@/views/purchase-apply/create'),
-      name: 'PurchaseApplyCreate',
-      meta: { title: '创建采购订单', boName: 'PurchaseApply' },
-      hidden: true
-    }, {
-      path: 'purchase-apply/edit/:id',
-      component: () => import('@/views/purchase-apply/edit'),
-      name: 'PurchaseApplyEdit',
-      meta: { title: '编辑采购订单', boName: 'PurchaseApply', noCache: true },
-      hidden: true
-    }, {
-      path: 'purchase-apply/view/:id',
-      component: () => import('@/views/purchase-apply/view'),
-      name: 'PurchaseApplyView',
-      meta: { title: '查看采购订单', boName: 'PurchaseApply', noCache: true },
-      hidden: true
-    }
-  ]
+  merge: [{
+    page: PAGE.MANAGE,
+    component: () => import('@/views/purchase-apply/manage')
+  }]
 }, {
-  // 管理页权限资源url
+  // 采购申请管理
   resUrl: 'MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_manage',
-  children: [
-    {
-      path: 'purchase-apply-front/manage',
-      component: () => import('@/views/purchase-apply/list'),
-      name: 'PurchaseApplyFrontList',
-      meta: { title: '采购申请管理', boName: 'PurchaseApplyFront' }
-    }, {
-      path: 'purchase-apply-front/create',
-      component: () => import('@/views/purchase-apply/create'),
-      name: 'PurchaseApplyFrontCreate',
-      meta: { title: '创建采购申请', boName: 'PurchaseApplyFront' },
-      hidden: true
-    }, {
-      path: 'purchase-apply-front/edit/:id',
-      component: () => import('@/views/purchase-apply/edit'),
-      name: 'PurchaseApplyFrontEdit',
-      meta: { title: '编辑采购申请', boName: 'PurchaseApplyFront', noCache: true },
-      hidden: true
-    }, {
-      path: 'purchase-apply-front/view/:id',
-      component: () => import('@/views/purchase-apply/view'),
-      name: 'PurchaseApplyFrontView',
-      meta: { title: '查看采购申请', boName: 'PurchaseApplyFront', noCache: true },
-      hidden: true
-    }
-  ]
+  merge: [{
+    page: PAGE.MANAGE,
+    component: () => import('@/views/purchase-apply-front/manage')
+  }, {
+    path: 'purchase-apply-front/manage-demo',
+    name: 'PurchaseApplyFrontManageDemo',
+    component: () => import('@/views/pan/list-demo'),
+    meta: { title: '采购申请管理Demo', boName: 'PurchaseApplyFront' }
+  }]
 }, {
   // 人员定位卡申请
   resUrl: 'MECSS/administration/perlocatcard/perLocatCardController.spr?action=_manage',
   children: [
     {
       path: 'per-locat-card/manage',
-      component: () => import('@/views/purchase-apply/list'),
+      component: () => import('@/views/per-locat-card/manage'),
       name: 'PerLocatCardList',
       meta: { title: '人员定位卡申请', boName: 'PerLocatCard' }
     }, {

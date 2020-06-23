@@ -42,7 +42,7 @@
               :search-help-name="item.searchHelpName || ''"
               :value-field="item.searchHelpValueField"
               :display-field="item.searchHelpDisplayFiled"
-              :default-condition="item.defaultCondition"
+              :query-params="item.queryParams"
               :sort-columns="item.sortColumns"
               :disabled="!editable || item.editable"
             />
@@ -52,7 +52,7 @@
               clearable
               :disabled="!editable || item.editable"
             >
-              <el-option v-for="opt of item.options" :key="opt.value" :label="opt.text" :value="opt.value" />
+              <el-option v-for="opt of item.selectOptions" :key="opt.value" :label="opt.text" :value="opt.value" />
             </el-select>
             <el-input
               v-else
@@ -69,7 +69,7 @@
 <script>
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
 import { UI_TYPE } from '@/constants'
-import { buildFormItemConfig, getBoInfo, getFormColumns } from '@/api/pan'
+import { buildFormItemConfig, getBoInfo, getFormItems } from '@/api/pan'
 import { isBlank, parseDate, parseDateTime, toDateStr, toDateTimeStr } from '@/utils/pan'
 
 export default {
@@ -135,7 +135,7 @@ export default {
     if (!this.idProp) {
       console.warn('未找到业务对象[' + this.boName + ']的id属性')
     }
-    let columns = await getFormColumns(this.boName)
+    let columns = await getFormItems(this.boName)
     columns = this.preConfigFormColumns(columns) || columns
     columns = columns.filter(col => col.visibility).sort((col1, col2) => col1.rowNo - col2.rowNo || col1.colNo - col2.colNo)
     const rowCols = []

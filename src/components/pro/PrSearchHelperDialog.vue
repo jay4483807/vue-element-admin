@@ -75,9 +75,11 @@ export default {
       type: Number,
       default: 10
     },
-    defaultCondition: {
-      type: String,
-      default: ''
+    queryParams: {
+      type: Object,
+      default() {
+        return {}
+      }
     },
     sortColumns: {
       type: String,
@@ -134,7 +136,8 @@ export default {
     getList() {
       this.listLoading = true
       const params = {
-        ...this.listQuery
+        ...this.listQuery,
+        ...(this.queryParams || {})
       }
       for (const col of this.config.queryConditions) {
         params[col.prop + '.fieldName'] = col.prop
@@ -144,7 +147,6 @@ export default {
         delete params[col.prop]
         delete params[col.prop + '_option']
       }
-      params.defaultCondition = this.defaultCondition
       params.sortColumns = this.sortColumns
       querySearchHelpList(params, this.searchHelpName).then(rsp => {
         this.list = rsp.data.items

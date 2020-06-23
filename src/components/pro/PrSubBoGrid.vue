@@ -12,7 +12,7 @@
       :height="400"
       v-on="$listeners"
       @toolbarClick="toolbarClick"
-      @rowClick="rowClick"
+      @rowBtnClick="rowBtnClick"
       @selection-change="selectionChange"
     />
     <el-dialog :title="formTitle" :visible.sync="showForm" :show-close="true" :append-to-body="true" width="70%">
@@ -28,8 +28,9 @@
 <script>
 import PrBoGrid from '@/components/pro/PrBoGrid'
 import PrBoForm from '@/components/pro/PrBoForm'
+import boComponent from '@/components/pro/mixins/boComponent'
+
 import { ACTION } from '@/constants'
-import { getBoInfo } from '@/api/pan'
 import { isBlank } from '@/utils/pan'
 const ADD = '__add'
 const RECOVER = '_recover'
@@ -37,15 +38,9 @@ const ORIGINAL_DATA = '__originalData'
 export default {
   name: 'PrSubBoGrid',
   components: { PrBoForm, PrBoGrid },
-  props: {
-    boName: {
-      type: String,
-      default: ''
-    }
-  },
+  mixins: [boComponent],
   data: function() {
     return {
-      boInfo: {},
       modifyRows: [],
       deleteRows: [],
       addRows: [],
@@ -57,13 +52,7 @@ export default {
   computed: {
     formTitle() {
       return this.boInfo.boText
-    },
-    idProp() {
-      return this.boInfo && this.boInfo.idProp
     }
-  },
-  async created() {
-    this.boInfo = await getBoInfo(this.boName)
   },
   methods: {
     reload() {
@@ -117,7 +106,7 @@ export default {
         }
       }
     },
-    toolbarClick(item) {
+    toolbarClick({ item }) {
       if (item.action === ACTION.CREATE) {
         this.form = {}
         this.form[ADD] = true
@@ -128,15 +117,15 @@ export default {
         }
       }
     },
-    rowClick([action, row, rowIndex]) {
-      if (action === ACTION.EDIT) {
+    rowBtnClick({ item, row, rowIndex }) {
+      if (item.action === ACTION.EDIT) {
         this.form = row
         this.showForm = true
         console.log('编辑子对象[' + this.boName + '],rowIndex=' + rowIndex, row)
-      } else if (action === ACTION.DELETE) {
+      } else if (item.action === ACTION.DELETE) {
         this.deleteRow(row)
         // this.$refs.grid.load()
-      } else if (action === RECOVER) {
+      } else if (item.action === RECOVER) {
         const i = this.findRow(row, this.deleteRows)
         this.deleteRows.splice(i, 1)
       }

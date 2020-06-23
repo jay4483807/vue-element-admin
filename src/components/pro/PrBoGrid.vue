@@ -37,7 +37,7 @@
             :key="index"
             :type="act.btnType || 'primary'"
             size="small"
-            @click="_gridAction(act.action, row, $index)"
+            @click="_gridAction(act, row, $index)"
           >{{ act.label }}</el-button>
         </div>
       </el-table-column>
@@ -64,18 +64,6 @@ export default {
       type: String,
       required: true
     },
-    defaultCondition: {
-      type: String,
-      default: ''
-    },
-    whereSql: {
-      type: String,
-      default: ''
-    },
-    orderSql: {
-      type: String,
-      default: ''
-    },
     queryParams: {
       type: Object,
       default() {
@@ -85,6 +73,33 @@ export default {
     toolbarClass: {
       type: String,
       default: 'el-button-group'
+    },
+    /**
+     * 配置grid列表项
+     */
+    configGridColumns: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * 配置grid操作列
+     */
+    configGridActions: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
+    },
+    /**
+     * 配置工具栏
+     */
+    configToolbarItems: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
     },
     autoLoad: {
       type: Boolean,
@@ -113,7 +128,8 @@ export default {
       }
     },
     /**
-     * 每一行按钮的特殊扩展处理
+     * 每一行gridActions的扩展处理
+     * 不同于configGridActions是在渲染前统一配置所有行，这里是在渲染每一行时调用一次
      */
     handleGridActions: {
       type: Function,
@@ -134,7 +150,8 @@ export default {
         idProp: '',
         gridColumns: [],
         gridActions: [],
-        toolbarItems: []
+        toolbarItems: [],
+        searchItems: []
       },
       list: null,
       total: 0,
@@ -153,6 +170,7 @@ export default {
       ...this.config,
       ...await buildGridConfig(this.boName, this)
     }
+    this.$emit('configOver', this.config)
     if (this.autoLoad) {
       this.load()
     }
@@ -163,11 +181,8 @@ export default {
       this.listLoading = true
       try {
         let params = {
-          ...this.listQuery,
-          ...this.queryParams,
-          defaultCondition: this.defaultCondition,
-          whereSql: this.whereSql,
-          orderSql: this.orderSql,
+          ...(this.listQuery || {}),
+          ...(this.queryParams || {}),
           ...queryParams
         }
         params = this.beforeLoad(params)
@@ -212,10 +227,22 @@ export default {
       }
     },
     _toolbarItemClick(item) {
-      this.$emit('toolbarClick', item)
+      const event = { item }
+      this.$emit('toolbarClick', event)
+      if (item.callback) {
+        item.callback.apply(this, [event])
+      }
     },
-    _gridAction(action, row, rowIndex) {
-      this.$emit('rowClick', [action, row, rowIndex])
+    _gridAction(item, row, rowIndex) {
+      const event = {
+        item,
+        row,
+        rowIndex
+      }
+      this.$emit('rowBtnClick', event)
+      if (item.callback) {
+        item.callback.apply(this, [event])
+      }
     }
   }
 }
