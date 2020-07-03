@@ -67,23 +67,23 @@ function generateSubRoutes(menuId, menuInfos) {
           }, {
             page: PAGE.CREATE,
             path: path + '/create',
-            component: () => import('@/views/purchase-apply/create'),
+            component: () => import('@/views/pan/edit'),
             name: boName + 'Create',
-            meta: { title: '创建' + boText, boName: boName },
+            meta: { title: '创建' + boText, boName: boName, editable: true },
             hidden: true
           }, {
             page: PAGE.EDIT,
             path: path + '/edit/:id',
-            component: () => import('@/views/purchase-apply/edit'),
+            component: () => import('@/views/pan/edit'),
             name: boName + 'Edit',
-            meta: { title: '编辑' + boText, boName: boName, noCache: true },
+            meta: { title: '编辑' + boText, boName: boName, editable: true },
             hidden: true
           }, {
             page: PAGE.VIEW,
             path: path + '/view/:id',
-            component: () => import('@/views/purchase-apply/view'),
+            component: () => import('@/views/pan/edit'),
             name: boName + 'View',
-            meta: { title: '查看' + boText, boName: boName, noCache: true },
+            meta: { title: '查看' + boText, boName: boName, editable: false },
             hidden: true
           }
         ]

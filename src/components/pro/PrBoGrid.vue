@@ -196,8 +196,13 @@ export default {
   },
   methods: {
     async load(queryParams = {}) {
-      this.listLoading = true
+      let loading = true
       try {
+        setTimeout(() => { // 延迟一秒后再出现loading动画
+          if (loading) {
+            this.listLoading = true
+          }
+        }, 1000)
         let params = {
           ...(this.listQuery || {}),
           ...(this.queryParams || {}),
@@ -220,9 +225,10 @@ export default {
         }
         this.list = list
         this.total = total
-        this.listLoading = false
       } catch (err) {
         console.log('拉取列表数据发生错误', err)
+      } finally {
+        loading = false
         this.listLoading = false
       }
     },

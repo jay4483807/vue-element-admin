@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <div class="filter-container">
+    <div v-if="config.quickSearchItems.length > 0" class="filter-container">
       <template v-for="(item,index) of config.quickSearchItems">
         <el-date-picker
           v-if="item.uiType===UI_TYPE.DATE_RANGE"
@@ -227,6 +227,14 @@ export default {
       throw new Error('未指定当前页面对应的业务对象名')
     }
     console.log('创建list页面：' + this.boName)
+  },
+  mounted() {
+  },
+  updated() {
+  },
+  activated() {
+    // 页面显示时自动刷新一下列表数据
+    if (this.$refs.grid) { this.load() }
   },
   methods: {
     gridConfigOver(config) {
