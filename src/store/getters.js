@@ -1,3 +1,5 @@
+import store from '@/store'
+
 const getters = {
   sidebar: state => state.app.sidebar,
   language: state => state.app.language,
@@ -12,6 +14,9 @@ const getters = {
   roles: state => state.user.roles,
   permission_routes: state => state.permission.routes,
   errorLogs: state => state.errorLog.logs,
-  isLogin: state => !!state.user.userId
+  isLogin: state => !!state.user.userId,
+  boInfo: state => boName => {
+    return store.getters['boMeta/boInfo'](boName)
+  }
 }
 export default getters

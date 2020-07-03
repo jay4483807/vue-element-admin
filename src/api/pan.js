@@ -212,7 +212,7 @@ export async function getFormItems(boName) {
         defaultValue: transBlank(col.defaultvalue),
         visibility: transBoolean(col.visibility),
         required: transBoolean(col.nullable),
-        editable: transBoolean(col.readonly),
+        editable: !transBoolean(col.readonly),
         colNo: transNumber(col.columnno),
         rowNo: transNumber(col.rowno)
       }

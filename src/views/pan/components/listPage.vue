@@ -72,7 +72,7 @@
         />
       </template>
       <div class="el-button-group">
-        <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+        <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="load">查询</el-button>
         <el-button v-if="config.searchMoreItems.length > 0" v-waves class="filter-item" type="primary" @click="dialogSearchMoreVisible=true">更多</el-button>
         <el-button v-waves class="filter-item" type="primary" @click="clearSearch">清空</el-button>
       </div>
@@ -86,6 +86,8 @@
       :config-grid-actions="configGridActions"
       :auto-load="false"
       :query-params="gridQueryParams"
+      v-bind="$attrs"
+      v-on="$listeners"
       @selection-change="_handleSelectionChange"
       @rowBtnClick="_rowBtnClick"
       @configOver="gridConfigOver"
@@ -151,6 +153,15 @@ export default {
       }
     },
     /**
+     * grid默认查询条件
+     */
+    gridQueryParams: {
+      type: Object,
+      default() {
+        return {}
+      }
+    },
+    /**
      * 配置查询“更多”的搜索项
      */
     configSearchMoreItems: {
@@ -194,15 +205,6 @@ export default {
       default(items) {
         return items
       }
-    },
-    /**
-     * grid默认查询条件
-     */
-    gridQueryParams: {
-      type: Object,
-      default() {
-        return {}
-      }
     }
   },
   data() {
@@ -233,16 +235,17 @@ export default {
       for (const item of [...this.config.searchMoreItems, ...this.config.quickSearchItems]) {
         this.$set(this.listQuery, item.prop, '')
       }
-      console.log('config.searchMoreItems', this.config.searchMoreItems)
-      console.log('config.quickSearchItems', this.config.quickSearchItems)
-      this.getList() // grid配置完成后立即拉取一次grid数据
+      this.load() // grid配置完成后立即拉取一次grid数据
     },
-    async getList() {
+    async load() {
       const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
       this.$refs.grid.load(queryParams)
     },
+    getList() {
+      return this.$refs.grid.list
+    },
     _search() {
-      this.getList()
+      this.load()
       this.dialogSearchMoreVisible = false
     },
     _rowBtnClick(event) {

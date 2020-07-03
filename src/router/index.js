@@ -33,7 +33,7 @@ import nestedRouter from './modules/nested'
   }
  */
 
-const hideDemo = true
+const hideDemo = false
 
 /**
  * constantRoutes
@@ -102,7 +102,7 @@ export const constantRoutes = [
     path: '/guide',
     component: Layout,
     redirect: '/guide/index',
-    hidden: hideDemo,
+    hidden: true,
     children: [
       {
         path: 'index',
@@ -125,18 +125,36 @@ export const constantRoutes = [
         meta: { title: 'profile', icon: 'user', noCache: true }
       }
     ]
-  },
-  {
+  }, {
     path: '/demo',
     component: Layout,
+    alwaysShow: true, // will always show the root menu
     hidden: hideDemo,
-    children: [
-      {
-        path: '出口单据',
-        component: () => import('@/views/pan/demo'),
-        name: 'PanDemo',
-        meta: { title: '出口单据' }
-      }]
+    meta: { title: 'Demo' },
+    children: [{
+      path: 'purchase-apply-front/manage',
+      name: 'PurchaseApplyFrontManageDemo',
+      component: () => import('@/views/pan/list-demo'),
+      meta: { title: '采购申请管理Demo', boName: 'PurchaseApplyFront' }
+    }, {
+      path: 'purchase-apply-front/create',
+      name: 'PurchaseApplyFrontCreateDemo',
+      component: () => import('@/views/pan/edit-demo'),
+      meta: { title: '创建采购申请Demo', boName: 'PurchaseApplyFront', editable: true, noCache: true },
+      hidden: true
+    }, {
+      path: 'purchase-apply-front/edit/:id',
+      name: 'PurchaseApplyFrontEditDemo',
+      component: () => import('@/views/pan/edit-demo'),
+      meta: { title: '编辑采购申请Demo', boName: 'PurchaseApplyFront', editable: true, noCache: true },
+      hidden: true
+    }, {
+      path: 'purchase-apply-front/view/:id',
+      name: 'PurchaseApplyFrontViewDemo',
+      component: () => import('@/views/pan/edit-demo'),
+      meta: { title: '查看采购申请Demo', boName: 'PurchaseApplyFront', editable: false, noCache: true },
+      hidden: true
+    }]
   }
 ]
 

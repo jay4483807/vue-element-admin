@@ -10,7 +10,8 @@ const state = {
   avatar: '',
   introduction: '',
   roles: [],
-  userId: ''
+  userId: '',
+  menus: []
 }
 
 const mutations = {
@@ -31,6 +32,9 @@ const mutations = {
   },
   SET_USER_ID: (state, userId) => {
     state.userId = userId
+  },
+  SET_MENUS: (state, menus) => {
+    state.menus = menus || []
   }
 }
 
@@ -87,6 +91,7 @@ const actions = {
     commit('SET_NAME', name)
     commit('SET_AVATAR', avatar)
     commit('SET_INTRODUCTION', introduction)
+    commit('SET_MENUS', res.coustom)
     return { ...data, menuData: res.coustom }
   },
 

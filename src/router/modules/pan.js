@@ -1,6 +1,6 @@
 import Layout from '@/layout'
 import Menu from '@/layout/menu'
-import { mergeConfig } from '@/utils/pan'
+import { mergeConfig, transBlank } from '@/utils/pan'
 
 const PAGE = {
   MANAGE: 'manage',
@@ -49,14 +49,19 @@ function generateSubRoutes(menuId, menuInfos) {
       if (routeConfig && routeConfig.children) {
         subRoutes.push(...routeConfig.children)
       } else {
-        const path = menu.NODEID
+        const viewPath = transBlank(menu.VUEROUTE, '')
+        const path = (transBlank(menu.APPMODEL, '')) + '/' + (viewPath || menu.NODEID)
         const boName = menu.BONAME
         const boText = menu.DESCRIPTION
+        let manageImport = () => import('@/views/pan/list')
+        if (viewPath) { // TODO webpack构建打包构建时无法事先载入动态构造的import路径，所以这里动态import是无效的
+          manageImport = () => import('@/views/' + viewPath + '/' + PAGE.MANAGE)
+        }
         const routes = [
           {
             page: PAGE.MANAGE,
             path: path + '/manage',
-            component: () => import('@/views/pan/list'),
+            component: manageImport,
             name: boName + 'List',
             meta: { title: menu.NODEDESC, boName: boName }
           }, {
@@ -99,7 +104,6 @@ function findSubMenus(nodeId, menuInfos) {
   }
   return arr
 }
-
 export const panRouters = [{
   // 采购订单申请抬头
   resUrl: 'MECSS/purchasemagt/purchaseapplymagt/purchaseApplyController.spr?action=_manage',
@@ -113,12 +117,8 @@ export const panRouters = [{
   merge: [{
     page: PAGE.MANAGE,
     component: () => import('@/views/purchase-apply-front/manage')
-  }, {
-    path: 'purchase-apply-front/manage-demo',
-    name: 'PurchaseApplyFrontManageDemo',
-    component: () => import('@/views/pan/list-demo'),
-    meta: { title: '采购申请管理Demo', boName: 'PurchaseApplyFront' }
-  }]
+  }],
+  hello: import('@/views/purchase-apply-front/manage')
 }, {
   // 人员定位卡申请
   resUrl: 'MECSS/administration/perlocatcard/perLocatCardController.spr?action=_manage',

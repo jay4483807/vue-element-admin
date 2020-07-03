@@ -10,20 +10,24 @@ const service = axios.create({
   timeout: 30000, // request timeout,
   method: 'post',
   transformRequest: [function(data) {
-    let ret = ''
-    for (const it in data) {
-      if (data[it] instanceof Array) {
-        // 编辑页保存时，多个子对象信息使用相同的参数subObject，此处扩展支持这种特殊情况的处理
-        for (const v of data[it]) {
+    if (data instanceof Object) {
+      let ret = ''
+      for (const it in data) {
+        if (data[it] instanceof Array) {
+          // 编辑页保存时，多个子对象信息使用相同的参数subObject，此处扩展支持这种特殊情况的处理
+          for (const v of data[it]) {
+            if (ret) { ret += '&' }
+            ret += encodeURIComponent(it) + '=' + encodeURIComponent(v)
+          }
+        } else {
           if (ret) { ret += '&' }
-          ret += encodeURIComponent(it) + '=' + encodeURIComponent(v)
+          ret += encodeURIComponent(it) + '=' + encodeURIComponent(data[it])
         }
-      } else {
-        if (ret) { ret += '&' }
-        ret += encodeURIComponent(it) + '=' + encodeURIComponent(data[it])
       }
+      return ret
+    } else {
+      return data
     }
-    return ret
   }]
 
 })
@@ -75,6 +79,11 @@ service.interceptors.response.use(
         type: res.type || 'error',
         duration: 5 * 1000
       })
+      if (res.type === 'error' && res.message === 'There is a cycle in the hierarchy!') {
+        // TODO 请求接口偶尔会遇到此错误，但重新请求一次有时又不会了，这里自动重新请求一次
+        console.error('重新发起请求', response.config)
+        return service(response.config)
+      }
       if (res.type === 'nologin') {
         MessageBox.confirm('您已退出登录，点击取消留在当前页面，点击确定返回登录页重新登录。', '退出登录', {
           confirmButtonText: '重新登录',

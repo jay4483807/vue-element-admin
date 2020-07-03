@@ -4,7 +4,6 @@ import { Message } from 'element-ui'
 import NProgress from 'nprogress' // progress bar
 import 'nprogress/nprogress.css' // progress bar style
 import getPageTitle from '@/utils/get-page-title'
-import { generateRoutesByMenusData } from './router/modules/pan'
 
 NProgress.configure({ showSpinner: false }) // NProgress Configuration
 
@@ -26,8 +25,7 @@ router.beforeEach(async(to, from, next) => {
       const { menuData } = await store.dispatch('user/getInfo')
 
       // generate accessible routes map based on roles
-      // const accessRoutes = await store.dispatch('permission/generateRoutes', roles)
-      const accessRoutes = generateRoutesByMenusData(menuData)
+      const accessRoutes = await store.dispatch('permission/generateRoutes', menuData)
       store.commit('permission/SET_ROUTES', accessRoutes)
       // dynamically add accessible routes
       router.addRoutes(accessRoutes)

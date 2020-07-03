@@ -54,16 +54,25 @@ export function mergeConfig(target, configArr, mergeKey = 'prop') {
     for (const configItem of configArr) {
       let found = false
       if (!isBlank(configItem[mergeKey])) {
-        for (const item of target) {
+        for (let i = 0; i < target.length; i++) {
+          const item = target[i]
           if (configItem[mergeKey] === item[mergeKey]) {
             mergeObj(item, configItem)
+            if (configItem.$index !== undefined) {
+              target.splice(i, 1)
+              target.splice(configItem.$index, 0, item)
+            }
             found = true
           }
         }
       }
       if (!found) {
-        // 如果没有找到匹配的配置，直接添加到结尾
-        target.push({ ...configItem })
+        // 如果没有找到匹配的配置就新增这个配置
+        if (configItem.$index !== undefined) {
+          target.splice(configItem.$index, 0, { ...configItem })
+        } else {
+          target.push({ ...configItem })
+        }
       }
     }
   } else {
@@ -81,8 +90,8 @@ export function mergeObj(target, options) {
 export function executeConfig(configOption, _this, data) {
   if (configOption === undefined) { return data }
   if (typeof configOption === 'function') {
-    return configOption.call(_this, data)
+    return configOption.call(_this, data) || data
   } else {
-    return configOption
+    return configOption || data
   }
 }

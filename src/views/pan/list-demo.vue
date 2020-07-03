@@ -1,34 +1,39 @@
 <template>
   <list-page
+    ref="page"
     :config-quick-search-items="configQuickSearchItems"
     :config-search-more-items="configSearchMoreItems"
     :config-toolbar-items="configToolbarItems"
     :config-grid-columns="configGridColumns"
     :config-grid-actions="configGridActions"
+    :compute-toolbar-items="computeToolbarItems"
+    :compute-grid-actions="computeGridActions"
     :grid-query-params="queryParams"
+    @selection-change="selectedRows = $event"
   />
 </template>
 
 <script>
 import ListPage from '@/views/pan/components/listPage'
 import { mergeConfig } from '@/utils/pan'
-import { UI_TYPE } from '@/constants'
+import { ACTION, UI_TYPE } from '@/constants'
 
 export default {
   components: { ListPage },
   data() {
     return {
+      // 扩展列表查询条件
       queryParams: {
         whereSql: '',
         orderSql: 'CREATETIME DESC',
         defaultCondition: ''
-      }
+      },
+      selectedRows: []
     }
   },
   methods: {
     // 配置快速查询选项
     configQuickSearchItems(items) {
-      console.log('配置快速查询配置选项:', items)
       // 过滤查询项，只显示指定的选项
       items = items.filter(item => ['businessstate', 'purchaseapplyno', 'applydate'].includes(item.prop))
       // 修改查询选项
@@ -58,11 +63,11 @@ export default {
           text: '单据处理'
         }]
       }])
+      console.log('配置快速查询配置选项:', items)
       return items
     },
     // 配置更多查询选项
     configSearchMoreItems(items) {
-      console.log('配置更多查询配置选项:', items)
       // 移除指定查询选项
       items = items.filter(item => !['creator'].includes(item.prop))
       // 增加查询选项
@@ -73,28 +78,49 @@ export default {
         searchHelpName: 'YHUSERALL',
         searchHelpDisplayFiled: 'BYNAME',
         searchHelpValueField: 'USERID'
+      }, {
+        prop: 'isprint',
+        label: '是否已打印',
+        uiType: UI_TYPE.SELECT,
+        selectOptions: [{ value: 'Y', text: '是' }, { value: 'N', text: '否' }]
       })
+      console.log('配置更多查询配置选项:', items)
       return items
     },
     // 配置工具栏按钮
     configToolbarItems(items) {
-      console.log('配置工具栏按钮:', items)
       mergeConfig(items, [{
         action: '_printApply',
         callback: ({ item }) => {
-          alert('导出申请单...\n' + item.url)
+          const list = this.$refs.page.getList() // 获取当前查询到的记录
+          alert('导出申请单...，已选中 ' + this.selectedRows.length + ' 条记录，当前页有 ' + list.length + ' 条记录：\n' + item.url)
         }
       }], 'action')
+      console.log('配置工具栏按钮:', items)
       return items
     },
     // 配置grid列
     configGridColumns(columns) {
       console.log('配置Grid列:', columns)
-      return columns
+      mergeConfig(columns, [{
+        prop: 'bedat',
+        width: 120 // 调整列宽
+      }, {
+        prop: 'isprint',
+        // 格式化显示的内容
+        formatter(row, column, cellValue, index) {
+          return { 'Y': '是', 'N': '否' }[cellValue] || cellValue
+        }
+      }, { // 增加列
+        prop: 'businessstate',
+        label: '单据状态',
+        $index: 0 // 明确指定在数组中的位置，mergeConfig会根据此值调整位置
+      }])
+      // 过滤掉指定的列
+      return columns.filter(col => col.prop !== 'status')
     },
     // 配置grid操作
     configGridActions(actions) {
-      console.log('配置Grid操作:', actions)
       mergeConfig(actions, {
         action: '_viewProcessState',
         // 操按钮点击回调处理
@@ -102,7 +128,30 @@ export default {
           alert('打开流程图:' + item.url + '&perlocatcardid=' + row.perlocatcardid)
         }
       }, 'action')
+      console.log('配置Grid操作:', actions)
       return actions
+    },
+    // 动态计算工具栏
+    computeToolbarItems(items) {
+      mergeConfig(items, {
+        action: '_printApply',
+        label: '导出申请单（' + this.selectedRows.length + '）'
+      }, 'action')
+      return items
+    },
+    // 动态计算每一行的按钮项
+    computeGridActions(items, row, rowIndex) {
+      return items.map(item => {
+        if (item.action === ACTION.EDIT) {
+          // 注意这里每一行的配置项值可能不同，需要构造一个新的对象返回
+          return {
+            ...item,
+            // 设置特定的记录不可编辑
+            disabled: row.bsart === 'NB'
+          }
+        }
+        return item
+      })
     }
   }
 }

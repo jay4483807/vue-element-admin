@@ -1,6 +1,6 @@
 <template>
   <div>
-    <pr-bo-form ref="form" :bo-name="boName" :model="form" :pre-config-form-columns="preConfigFormColumns">
+    <pr-bo-form ref="form" :bo-name="boName" :model="form" :config-form-items="preConfigFormColumns">
       <template slot="top">
         <sticky :z-index="10" class-name="sub-navbar draft" :sticky-top="84">
           <el-button

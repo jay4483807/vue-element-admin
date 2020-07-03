@@ -6,9 +6,8 @@
       v-bind="$attrs"
       :row-class-name="rowClassName"
       :cell-class-name="cellClassName"
-      :auto-load="false"
-      :handle-grid-actions="handleGridActions"
-      :handle-list-data="handleListData"
+      :compute-grid-actions="computeGridActions"
+      :compute-list-data="computeListData"
       :height="400"
       v-on="$listeners"
       @toolbarClick="toolbarClick"
@@ -16,7 +15,16 @@
       @selection-change="selectionChange"
     />
     <el-dialog :title="formTitle" :visible.sync="showForm" :show-close="true" :append-to-body="true" width="70%">
-      <pr-bo-form ref="form" :bo-name="boName" label-width="120px" :model="form" />
+      <pr-bo-form
+        ref="form"
+        :bo-name="boName"
+        label-width="120px"
+        :model="form"
+        :editable="formEditable"
+        :compute-form-items="computeFormItems"
+        :compute-form-data="computeFormData"
+        :config-form-items="configFormItems"
+      />
       <div slot="footer" class="dialog-footer">
         <el-button @click="showForm = false">取 消</el-button>
         <el-button type="primary" @click="formConfirm">确 定</el-button>
@@ -33,18 +41,39 @@ import boComponent from '@/components/pro/mixins/boComponent'
 import { ACTION } from '@/constants'
 import { isBlank } from '@/utils/pan'
 const ADD = '__add'
-const RECOVER = '_recover'
+const RECOVER = '_recover' // 恢复
 const ORIGINAL_DATA = '__originalData'
 export default {
   name: 'PrSubBoGrid',
   components: { PrBoForm, PrBoGrid },
   mixins: [boComponent],
+  props: {
+    configFormItems: {
+      type: Function,
+      default: (items) => {
+        return items
+      }
+    },
+    computeFormItems: {
+      type: Function,
+      default: ({ items, form }) => {
+        return items
+      }
+    },
+    computeFormData: {
+      type: Function,
+      default: (form) => {
+        return form
+      }
+    }
+  },
   data: function() {
     return {
       modifyRows: [],
       deleteRows: [],
       addRows: [],
       form: {},
+      formEditable: true,
       showForm: false,
       selectedRows: []
     }
@@ -108,8 +137,9 @@ export default {
     },
     toolbarClick({ item }) {
       if (item.action === ACTION.CREATE) {
-        this.form = {}
-        this.form[ADD] = true
+        this.form = {
+          [ADD]: true
+        }
         this.showForm = true
       } else if (item.action === ACTION.DELETES) {
         for (const row of this.selectedRows) {
@@ -120,6 +150,7 @@ export default {
     rowBtnClick({ item, row, rowIndex }) {
       if (item.action === ACTION.EDIT) {
         this.form = row
+        this.formEditable = true
         this.showForm = true
         console.log('编辑子对象[' + this.boName + '],rowIndex=' + rowIndex, row)
       } else if (item.action === ACTION.DELETE) {
@@ -128,27 +159,39 @@ export default {
       } else if (item.action === RECOVER) {
         const i = this.findRow(row, this.deleteRows)
         this.deleteRows.splice(i, 1)
+      } else if (item.action === ACTION.VIEW) {
+        this.form = row
+        this.formEditable = false
+        this.showForm = true
       }
     },
     formConfirm() {
-      const row = this.$refs.form.getForm()
-      if (row[ADD] === true) {
-        // 没有在addRows数组中的情况
-        row[ADD] = this.addRows.length
-        this.addRows.push(row)
-      } else if (typeof row[ADD] === 'number') {
-        // 已在addRows数组中
-        this.addRows.splice(row[ADD], 1, row)
-      } else {
-        const index = this.findRow(row, this.modifyRows)
-        if (index >= 0) {
-          this.modifyRows.splice(index, 1, row)
+      this.$refs.form.validate(valid => {
+        if (valid) {
+          const row = this.$refs.form.getForm()
+          if (row[ADD] === true) {
+            // 没有在addRows数组中的情况
+            row[ADD] = this.addRows.length
+            this.addRows.push(row)
+          } else if (typeof row[ADD] === 'number') {
+            // 已在addRows数组中
+            this.addRows.splice(row[ADD], 1, row)
+          } else {
+            const index = this.findRow(row, this.modifyRows)
+            if (index >= 0) {
+              this.modifyRows.splice(index, 1, row)
+            } else {
+              this.modifyRows.push(row)
+            }
+          }
+          this.showForm = false
         } else {
-          this.modifyRows.push(row)
+          this.$message({
+            message: '数据校验失败，请检查',
+            type: 'error'
+          }, 2000)
         }
-      }
-      this.showForm = false
-      // this.$refs.grid.load()
+      })
     },
     selectionChange(rows) {
       this.selectedRows = rows
@@ -156,7 +199,7 @@ export default {
     findRow(row, rowArr) {
       return rowArr.findIndex((r) => r[this.idProp] === row[this.idProp])
     },
-    handleGridActions(gridActions, row, rowIndex) {
+    computeGridActions(gridActions, row, rowIndex) {
       if (this.findRow(row, this.deleteRows) >= 0) {
         return gridActions.map((item) => {
           if (item.action === ACTION.DELETE) {
@@ -172,7 +215,7 @@ export default {
       }
       return gridActions
     },
-    handleListData(list) {
+    computeListData(list) {
       if (list) {
         list = list.map(row => {
           if (!row[ORIGINAL_DATA]) {

@@ -1,7 +1,24 @@
 <template>
   <div>
-    <el-input prefix-icon="el-icon-search" :value="selectedLabel" v-bind="$attrs" :readonly="true" v-on="$listeners" @focus="openSearchHelpDialog" />
-    <pr-search-helper-dialog ref="shDialog" :visible.sync="showDialog" v-bind="$attrs" :search-help-name="searchHelpName" :multi-select="multiSelect" :id-prop="valueField" @confirmSelected="confirmSelected" />
+    <el-input
+      prefix-icon="el-icon-search"
+      :value="selectedLabel"
+      v-bind="$attrs"
+      :disabled="disabled"
+      :clearable="true"
+      v-on="$listeners"
+      @focus="openSearchHelpDialog"
+      @clear="clear"
+    />
+    <pr-search-helper-dialog
+      ref="shDialog"
+      :visible.sync="showDialog"
+      v-bind="$attrs"
+      :search-help-name="searchHelpName"
+      :multi-select="multiSelect"
+      :id-prop="valueField"
+      @confirmSelected="confirmSelected"
+    />
   </div>
 
 </template>
@@ -67,16 +84,25 @@ export default {
   watch: {
     async value(val, oldVal) {
       if (this.valueEquals(val, this.getValue())) { return }
-      this.selectedRows = await this.$refs.shDialog.getRowByIds((val instanceof Array ? val : [val]))
+      this.selectedRows = await this.$refs.shDialog.getRowByIds(val instanceof Array ? val : [val])
     }
   },
   methods: {
+    async getDisplay(val) {
+      if (!val) val = this.getValue()
+      const rows = await this.$refs.shDialog.getRowByIds(val instanceof Array ? val : [val])
+      return rows.length > 0 ? rows.map(row => row ? row[this.displayField] : '').join(', ') : ''
+    },
     openSearchHelpDialog() {
       if (!this.readonly && !this.disabled) { this.showDialog = true }
     },
     confirmSelected(rows) {
       this.selectedRows = rows
       this.showDialog = false
+      this.$emit('select', this.getValue(), this.selectedRows)
+    },
+    clear(val) {
+      this.selectedRows = []
       this.$emit('select', this.getValue(), this.selectedRows)
     },
     valueEquals(val1, val2) {
@@ -93,7 +119,7 @@ export default {
       if (this.multiSelect) {
         return this.selectedRows.map(row => row[this.valueField])
       } else {
-        return (this.selectedRows && this.selectedRows.length > 0) ? this.selectedRows[0][this.valueField] : undefined
+        return (this.selectedRows && this.selectedRows.length > 0 && this.selectedRows[0]) ? this.selectedRows[0][this.valueField] : undefined
       }
     }
   }

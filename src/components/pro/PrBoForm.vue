@@ -2,41 +2,46 @@
   <el-form ref="form" :label-width="labelWidth" :inline="false" label-position="right" :model="form" :rules="rules" class="form-container">
     <slot name="top" />
     <div class="form-main-container">
-      <el-row v-for="(row,rowIndex) of config.formRowColumns" :key="rowIndex" type="flex">
-        <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item.span">
-          <el-form-item :label="item.label" :prop="item.prop">
+      <el-row v-for="(row,rowIndex) of formRowColumns" :key="rowIndex" type="flex">
+        <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item && item.span || 24/colSize">
+          <el-form-item v-if="item" v-show="!item.hide" :label="item.label" :prop="item.prop">
             <el-date-picker
               v-if="item.uiType===UI_TYPE.DATE_RANGE"
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
               type="daterange"
               start-placeholder="开始日期"
               range-separator="-"
               end-placeholder="结束日期"
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
             />
             <el-date-picker
               v-else-if="item.uiType===UI_TYPE.DATE"
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
               type="date"
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
             />
             <el-date-picker
               v-else-if="item.uiType===UI_TYPE.DATE_TIME"
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
               type="datetime"
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
             />
             <el-date-picker
               v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
               type="datetimerange"
               start-placeholder="i开始时间"
               range-separator="-"
               end-placeholder="结束日期"
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
             />
             <pr-search-helper
               v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
               :multi-select="item.multiSelect"
               :search-help-name="item.searchHelpName || ''"
@@ -44,20 +49,23 @@
               :display-field="item.searchHelpDisplayFiled"
               :query-params="item.queryParams"
               :sort-columns="item.sortColumns"
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
             />
             <el-select
               v-else-if="item.uiType===UI_TYPE.SELECT"
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
               clearable
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
             >
               <el-option v-for="opt of item.selectOptions" :key="opt.value" :label="opt.text" :value="opt.value" />
             </el-select>
             <el-input
               v-else
+              :ref="'item_'+item.prop"
               v-model="form[item.prop]"
-              :disabled="!editable || item.editable"
+              :disabled="!(editable && item.editable)"
+              :clearable="true"
             />
           </el-form-item>
         </el-col>
@@ -88,9 +96,22 @@ export default {
       type: String,
       required: true
     },
-    preConfigFormColumns: {
+    configFormItems: {
       type: Function,
-      default: (columns) => {
+      default: (items) => {
+        return items
+      }
+    },
+    computeFormItems: {
+      type: Function,
+      default: ({ items, form }) => {
+        return items
+      }
+    },
+    computeFormData: {
+      type: Function,
+      default: (form) => {
+        return form
       }
     },
     labelWidth: {
@@ -106,24 +127,108 @@ export default {
   },
   data() {
     return {
-      rules: {},
-      config: {
-        colSize: 3,
-        formRowColumns: []
-      },
+      colSize: 3,
       form: {},
       formItems: [],
-      useRowColNo: false
+      useRowColNo: true
     }
   },
   computed: {
-    formComputer() {
-      return this.toFormData(this.model)
+    computedFormItems() {
+      return this.computeFormItems({ items: this.formItems, form: this.form }) || []
+    },
+    formItemMap() {
+      const formItemMap = {}
+      for (const item of this.computedFormItems) {
+        formItemMap[item.prop] = item
+      }
+      return formItemMap
+    },
+    formRowColumns() {
+      const items = this.computedFormItems.filter(col => col.visibility).sort((col1, col2) => col1.rowNo - col2.rowNo || col1.colNo - col2.colNo)
+      const rowCols = []
+      const noPosColumns = []
+      for (const item of items) {
+        if (!item.span) { item.span = item.uiType === UI_TYPE.TEXT_AREA ? 24 : 24 / this.colSize }
+        if (this.useRowColNo && item.rowNo > 0 && item.colNo > 0) {
+          let row = rowCols[item.rowNo - 1]
+          if (!row) {
+            row = []
+            rowCols[item.rowNo - 1] = row
+          }
+          let col = item.colNo - 1
+          while (row[col]) {
+            col++
+          }
+          row[col] = item
+        } else {
+          noPosColumns.push(item)
+        }
+      }
+      let rowP = 0; let colP = 0
+      for (const col of noPosColumns) {
+        let row
+        for (;;rowP++) {
+          row = rowCols[rowP]
+          if (!row) {
+            rowCols[rowP] = row = []
+          }
+          let totalSpan = 0
+          for (const c of row) {
+            if (c) { totalSpan += c.span }
+          }
+          if (totalSpan + col.span > 24) {
+            colP = 0
+            continue
+          }
+          for (; colP < this.colSize; colP++) {
+            if (!row[colP]) {
+              break
+            }
+          }
+          if (colP >= this.colSize) {
+            colP = 0
+            continue
+          }
+          break
+        }
+        row[colP] = col
+      }
+      return rowCols
+    },
+    rules() {
+      const rules = {}
+      for (const item of this.computedFormItems) {
+        if (item.rule) { rules[item.prop] = item.rule } else if (item.required) {
+          rules[item.prop] = [
+            { required: true,
+              validator: (rule, value, callback) => {
+                if (isBlank(value)) {
+                  callback(new Error('请输入' + item.label))
+                } else {
+                  callback()
+                }
+              }
+            }
+          ]
+        }
+      }
+      return rules
     }
   },
   watch: {
-    formComputer(value) {
-      this.form = value
+    model(model) {
+      this.form = this.toFormData(model)
+    },
+    rules() {
+      this.$refs.form.clearValidate()
+    },
+    computedFormItems() {
+      for (const item of this.computedFormItems) {
+        if (this.form[item.prop] === undefined) {
+          this.$set(this.form, item.prop, item.defaultValue || '')
+        }
+      }
     }
   },
   beforeCreate() {
@@ -135,66 +240,29 @@ export default {
     if (!this.idProp) {
       console.warn('未找到业务对象[' + this.boName + ']的id属性')
     }
-    let columns = await getFormItems(this.boName)
-    columns = this.preConfigFormColumns(columns) || columns
-    columns = columns.filter(col => col.visibility).sort((col1, col2) => col1.rowNo - col2.rowNo || col1.colNo - col2.colNo)
-    const rowCols = []
-    const noPosColumns = []
-    const rules = {}
-    const formItems = {}
-    for (const col of columns) {
-      const item = await buildFormItemConfig(col, boInfo.props)
-      if (item.required) {
-        rules[item.prop] = [
-          { required: true, trigger: 'blur',
-            validator: (rule, value, callback) => {
-              if (isBlank(value)) {
-                callback(new Error('请输入' + item.label))
-              } else {
-                callback()
-              }
-            }
-          }
-        ]
-      }
-      if (!item.span) { item.span = item.uiType === UI_TYPE.TEXT_AREA ? 24 : 24 / this.config.colSize }
-      formItems[item.prop] = item
-      if (this.useRowColNo && item.rowNo > 0 && item.colNo > 0) {
-        let row = rowCols[item.rowNo - 1]
-        if (!row) {
-          row = []
-          rowCols[item.rowNo - 1] = row
-        }
-        row.push(item)
-      } else {
-        noPosColumns.push(item)
-      }
+    let items = await getFormItems(this.boName)
+    for (let i = 0; i < items.length; i++) {
+      items[i] = await buildFormItemConfig(items[i], boInfo.props)
     }
-    for (const col of noPosColumns) {
-      let row = rowCols[rowCols.length - 1]
-      if (row) {
-        let totalSpan = 0
-        for (const c of row) {
-          totalSpan += c.span
-        }
-        if (totalSpan + col.span > 24) {
-          row = null // 超过24就换行
-        }
+    items = this.configFormItems(items) || items
+    this.formItems = items
+    console.log('表单字段配置:', items)
+    this.$watch('form', (newVal, oldVal) => {
+      if (!this._computingFormData) {
+        this._computingFormData = true
+        this.computeFormData(this.form)
+        this.$nextTick(() => {
+          this._computingFormData = false
+        })
       }
-      if (!row) {
-        row = []
-        rowCols[rowCols.length] = row
-      }
-      row.push(col)
-    }
-    this.formItems = formItems
-    console.log('获取表单字段信息:', formItems)
-    this.rules = rules
-    this.config.formRowColumns = rowCols
-    console.log('get formRowColumns', rowCols, rules)
+    }, {
+      deep: true
+    })
+    // 初始化时并不会监听到model变更，这里手动调用一次
+    this.form = this.toFormData(this.model)
   },
   methods: {
-    getForm(form) {
+    getForm() {
       return this.formatFormData(this.form)
     },
     getFormForSave() {
@@ -206,7 +274,7 @@ export default {
     toFormData(data) {
       const result = { ...data }
       for (const prop of Object.keys(data)) {
-        const item = this.formItems[prop]
+        const item = this.formItemMap[prop]
         if (!item) { continue }
         switch (item.uiType) {
           case UI_TYPE.DATE: {
@@ -224,7 +292,7 @@ export default {
     formatFormData(formData) {
       const result = { ...formData }
       for (const prop of Object.keys(formData)) {
-        const item = this.formItems[prop]
+        const item = this.formItemMap[prop]
         if (!item) { continue }
         switch (item.uiType) {
           case UI_TYPE.DATE: {
@@ -243,7 +311,7 @@ export default {
       const resultData = {}
       for (const prop of Object.keys(formData)) {
         let value = formData[prop]
-        const item = this.formItems[prop]
+        const item = this.formItemMap[prop]
         if (item) {
           switch (item.uiType) {
             case UI_TYPE.DATE: {
@@ -259,6 +327,13 @@ export default {
         resultData[this.boName + '.' + prop] = value
       }
       return resultData
+    },
+    getFormItem(prop) {
+      let item = this.$refs['item_' + prop]
+      if (item instanceof Array) {
+        item = item[0]
+      }
+      return item
     }
   }
 }
@@ -282,6 +357,14 @@ export default {
       .el-col {
         max-width: 900px;
       }
+    }
+  }
+
+  .el-form-item {
+    /deep/ label {
+      overflow: hidden;
+      /*text-overflow: ellipsis;*/
+      white-space: nowrap;
     }
   }
 
