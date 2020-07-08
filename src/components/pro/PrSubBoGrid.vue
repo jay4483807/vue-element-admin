@@ -199,9 +199,9 @@ export default {
     findRow(row, rowArr) {
       return rowArr.findIndex((r) => r[this.idProp] === row[this.idProp])
     },
-    computeGridActions(gridActions, row, rowIndex) {
+    computeGridActions({ actions, row, rowIndex }) {
       if (this.findRow(row, this.deleteRows) >= 0) {
-        return gridActions.map((item) => {
+        return actions.map((item) => {
           if (item.action === ACTION.DELETE) {
             item = {
               ...item,
@@ -213,7 +213,7 @@ export default {
           return item
         })
       }
-      return gridActions
+      return actions
     },
     computeListData(list) {
       if (list) {

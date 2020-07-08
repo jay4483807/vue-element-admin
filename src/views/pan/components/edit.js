@@ -1,0 +1,53 @@
+
+export default {
+  data() {
+    return {
+      id: this.$route.params.id || '',
+      editable: this.$route.meta.editable || false
+    }
+  },
+  created() {
+    this.bindProps = {
+      configFormItems: this.configFormItems,
+      computeFormData: this.computeFormData,
+      computeFormItems: this.computeFormItems,
+      configToolbarItems: this.configToolbarItems,
+      configSubBoFormItems: this.configSubBoFormItems,
+      computeSubBoFormItems: this.computeSubBoFormItems,
+      computeSubBoFormData: this.computeSubBoFormData
+    }
+  },
+  methods: {
+    page() {
+      const page = this.$refs.page
+      if (!page) {
+        throw new Error('edit-page组件未挂载完成或是ref值没有设置为page')
+      }
+      return page
+    },
+    configFormItems(items) {
+      return items
+    },
+    computeFormData(form) {
+      return form
+    },
+    computeFormItems({ items, form }) {
+      return items
+    },
+    configToolbarItems(items) {
+      return items
+    },
+    configSubBoFormItems({ boName, items }) {
+      return items
+    },
+    computeSubBoFormItems({ boName, items, form }) {
+      return items
+    },
+    computeSubBoFormData({ boName, form }) {
+      return form
+    },
+    computeSubToolbarItems() {
+      // TODO
+    }
+  }
+}

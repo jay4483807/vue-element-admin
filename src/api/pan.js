@@ -72,15 +72,24 @@ export const GridColumns = {
 // 表单项
 export const FormItem = {
   prop: String,
+  // 显示文本
   label: String,
   // 详见UI_TYPE
   uiType: String,
+  // 默认值
   defaultValue: String,
+  // 是否可见
   visibility: Boolean,
+  // 是否隐藏，默认false，与visibility区别是hide的表单项还会占据位置，而visibility=false的不会
+  hide: Boolean,
+  // 是否必填
   required: Boolean,
+  // 是否可编辑
   editable: Boolean,
-  colNo: Number,
-  rowNo: Number
+  // 表单上行位置，从1开始，0表示自动排列
+  rowNo: Number,
+  // 表单上列位置，从1开始，如果rowNo=0，则作为自动排列的排序号
+  colNo: Number
 }
 
 function boQueryGrid(boName, defaultCondition, orderSql) {

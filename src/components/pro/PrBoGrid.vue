@@ -1,5 +1,5 @@
 <template>
-  <div class="pr-bo-grid">
+  <div>
     <el-row :class="toolbarClass">
       <el-button
         v-for="(item,index) of computeToolbarItems(config.toolbarItems)"
@@ -35,7 +35,7 @@
       <el-table-column v-if="config.gridActions.length>0" v-slot="{row,$index}" :width="68*config.gridActions.length+60" align="center" label="操作" fixed="right">
         <div class="el-button-group">
           <el-button
-            v-for="(act,index) of computeGridActions(config.gridActions, row, $index)"
+            v-for="(act,index) of _computeGridActions(config.gridActions, row, $index)"
             :key="index"
             :type="act.btnType || 'primary'"
             size="small"
@@ -138,8 +138,8 @@ export default {
      */
     computeGridActions: {
       type: Function,
-      default(gridActions, row, rowIndex) {
-        return gridActions
+      default({ actions, row, rowIndex }) {
+        return actions
       }
     },
     computeListData: {
@@ -282,6 +282,9 @@ export default {
     _selectionChange(rows) {
       this.selectedRows = rows
       this.$emit('selection-change', rows)
+    },
+    _computeGridActions(actions, row, rowIndex) {
+      return this.computeGridActions({ actions, row, rowIndex })
     }
   }
 }

@@ -105,13 +105,6 @@ function findSubMenus(nodeId, menuInfos) {
   return arr
 }
 export const panRouters = [{
-  // 采购订单申请抬头
-  resUrl: 'MECSS/purchasemagt/purchaseapplymagt/purchaseApplyController.spr?action=_manage',
-  merge: [{
-    page: PAGE.MANAGE,
-    component: () => import('@/views/purchase-apply/manage')
-  }]
-}, {
   // 采购申请管理
   resUrl: 'MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_manage',
   merge: [{

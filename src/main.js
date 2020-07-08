@@ -18,7 +18,9 @@ import './icons' // icon
 import './permission' // permission control
 import './utils/error-log' // error log
 
-import * as filters from './filters' // global filters
+import * as filters from './filters'
+import listPage from '@/views/pan/components/listPage'
+import editPage from '@/views/pan/components/editPage' // global filters
 
 /**
  * If you don't want to use mock-server
@@ -37,6 +39,9 @@ Vue.use(Element, {
   size: Cookies.get('size') || 'medium', // set element-ui default size
   i18n: (key, value) => i18n.t(key, value)
 })
+
+Vue.component('list-page', listPage)
+Vue.component('edit-page', editPage)
 
 // register global utility filters
 Object.keys(filters).forEach(key => {

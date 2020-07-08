@@ -190,3 +190,30 @@ aside {
 .multiselect--active {
   z-index: 1000 !important;
 }
+
+.form-container {
+
+  padding: 10px 45px 10px 50px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .line-feed label {
+    line-height: 18px;
+  }
+
+  .el-col {
+    max-width: 900px;
+  }
+
+  .el-form-item {
+    label {
+      overflow: hidden;
+      /*text-overflow: ellipsis;*/
+      white-space: nowrap;
+    }
+  }
+
+  .el-form-item__content>div {
+    width: 100%;
+  }
+}

@@ -1,76 +1,73 @@
 <template>
   <el-form ref="form" :label-width="labelWidth" :inline="false" label-position="right" :model="form" :rules="rules" class="form-container">
-    <slot name="top" />
-    <div class="form-main-container">
-      <el-row v-for="(row,rowIndex) of formRowColumns" :key="rowIndex" type="flex">
-        <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item && item.span || 24/colSize">
-          <el-form-item v-if="item" v-show="!item.hide" :label="item.label" :prop="item.prop">
-            <el-date-picker
-              v-if="item.uiType===UI_TYPE.DATE_RANGE"
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              type="daterange"
-              start-placeholder="开始日期"
-              range-separator="-"
-              end-placeholder="结束日期"
-              :disabled="!(editable && item.editable)"
-            />
-            <el-date-picker
-              v-else-if="item.uiType===UI_TYPE.DATE"
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              type="date"
-              :disabled="!(editable && item.editable)"
-            />
-            <el-date-picker
-              v-else-if="item.uiType===UI_TYPE.DATE_TIME"
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              type="datetime"
-              :disabled="!(editable && item.editable)"
-            />
-            <el-date-picker
-              v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              type="datetimerange"
-              start-placeholder="i开始时间"
-              range-separator="-"
-              end-placeholder="结束日期"
-              :disabled="!(editable && item.editable)"
-            />
-            <pr-search-helper
-              v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              :multi-select="item.multiSelect"
-              :search-help-name="item.searchHelpName || ''"
-              :value-field="item.searchHelpValueField"
-              :display-field="item.searchHelpDisplayFiled"
-              :query-params="item.queryParams"
-              :sort-columns="item.sortColumns"
-              :disabled="!(editable && item.editable)"
-            />
-            <el-select
-              v-else-if="item.uiType===UI_TYPE.SELECT"
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              clearable
-              :disabled="!(editable && item.editable)"
-            >
-              <el-option v-for="opt of item.selectOptions" :key="opt.value" :label="opt.text" :value="opt.value" />
-            </el-select>
-            <el-input
-              v-else
-              :ref="'item_'+item.prop"
-              v-model="form[item.prop]"
-              :disabled="!(editable && item.editable)"
-              :clearable="true"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </div>
+    <el-row v-for="(row,rowIndex) of formRowColumns" :key="rowIndex" type="flex">
+      <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item && item.span || 24/colSize">
+        <el-form-item v-if="item" v-show="!item.hide" :label="item.label" :prop="item.prop">
+          <el-date-picker
+            v-if="item.uiType===UI_TYPE.DATE_RANGE"
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            type="daterange"
+            start-placeholder="开始日期"
+            range-separator="-"
+            end-placeholder="结束日期"
+            :disabled="!(editable && item.editable)"
+          />
+          <el-date-picker
+            v-else-if="item.uiType===UI_TYPE.DATE"
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            type="date"
+            :disabled="!(editable && item.editable)"
+          />
+          <el-date-picker
+            v-else-if="item.uiType===UI_TYPE.DATE_TIME"
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            type="datetime"
+            :disabled="!(editable && item.editable)"
+          />
+          <el-date-picker
+            v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            type="datetimerange"
+            start-placeholder="i开始时间"
+            range-separator="-"
+            end-placeholder="结束日期"
+            :disabled="!(editable && item.editable)"
+          />
+          <pr-search-helper
+            v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            :multi-select="item.multiSelect"
+            :search-help-name="item.searchHelpName || ''"
+            :value-field="item.searchHelpValueField"
+            :display-field="item.searchHelpDisplayFiled"
+            :query-params="item.queryParams"
+            :sort-columns="item.sortColumns"
+            :disabled="!(editable && item.editable)"
+          />
+          <el-select
+            v-else-if="item.uiType===UI_TYPE.SELECT"
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            clearable
+            :disabled="!(editable && item.editable)"
+          >
+            <el-option v-for="opt of item.selectOptions" :key="opt.value" :label="opt.text" :value="opt.value" />
+          </el-select>
+          <el-input
+            v-else
+            :ref="'item_'+item.prop"
+            v-model="form[item.prop]"
+            :disabled="!(editable && item.editable)"
+            :clearable="true"
+          />
+        </el-form-item>
+      </el-col>
+    </el-row>
   </el-form>
 </template>
 
@@ -340,43 +337,5 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  @import "~@/styles/mixin.scss";
 
-  .form-container {
-    position: relative;
-
-    .form-main-container {
-      padding: 40px 45px 20px 50px;
-      max-width: 1200px;
-      margin: 0 auto;
-
-      .line-feed /deep/ label {
-        line-height: 18px;
-      }
-
-      .el-col {
-        max-width: 900px;
-      }
-    }
-  }
-
-  .el-form-item {
-    /deep/ label {
-      overflow: hidden;
-      /*text-overflow: ellipsis;*/
-      white-space: nowrap;
-    }
-  }
-
-  .el-form-item__content>div {
-    width: 100%;
-  }
-
-  .tabs-container {
-    padding: 0 45px 20px 50px;
-  }
-
-  .el-button-group{
-    margin-bottom: 10px;
-  }
 </style>

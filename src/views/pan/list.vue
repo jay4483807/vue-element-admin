@@ -1,13 +1,12 @@
 <template>
-  <list-page />
+  <list-page ref="page" v-bind="bindProps" />
 </template>
 
 <script>
-import ListPage from '@/views/pan/components/listPage'
+import list from '@/views/pan/components/list'
 
 export default {
-  name: 'PanList',
-  components: { ListPage }
+  mixins: [list]
 }
 </script>
 

@@ -1,21 +1,11 @@
 <template>
-  <edit-page
-    :id="id"
-    ref="page"
-    :editable="editable"
-  />
+  <edit-page ref="page" v-bind="bindProps" />
 </template>
 
 <script>
-import EditPage from '@/views/pan/components/editPage'
+import edit from './components/edit'
 export default {
-  components: { EditPage },
-  data() {
-    return {
-      id: this.$route.params.id || '',
-      editable: this.$route.meta.editable || false
-    }
-  }
+  mixins: [edit]
 }
 </script>
 

@@ -1,23 +1,12 @@
 <template>
-  <edit-page
-    :id="id"
-    ref="page"
-    :editable="editable"
-    :config-form-items="configFormItems"
-    :compute-form-data="computeFormData"
-    :compute-form-items="computeFormItems"
-    :config-toolbar-items="configToolbarItems"
-    :config-sub-bo-form-items="configSubBoFormItems"
-    :compute-sub-bo-form-items="computeSubBoFormItems"
-    :compute-sub-bo-form-data="computeSubBoFormData"
-  />
+  <edit-page ref="page" v-bind="bindProps" />
 </template>
 
 <script>
-import EditPage from '@/views/pan/components/editPage'
 import { mergeConfig } from '@/utils/pan'
 import { UI_TYPE } from '@/constants'
 import moment from 'moment'
+import edit from '@/views/pan/components/edit'
 
 const YES_NO_ITEM = {
   uiType: UI_TYPE.SELECT,
@@ -31,17 +20,11 @@ const YES_NO_ITEM = {
 }
 
 export default {
-  components: { EditPage },
-  data() {
-    return {
-      id: this.$route.params.id || '',
-      editable: this.$route.meta.editable || false
-    }
-  },
+  mixins: [edit],
   mounted() {
-    if (!this.id) {
-      // 创建时设置表单数据的初始值
-      this.$refs.page.setForm({
+    if (!this.page().id) {
+      // 页面加载时设置表单数据的初始值
+      this.page().setForm({
         applydate: new Date(),
         bedat: new Date(),
         businessstate: '0'
@@ -49,6 +32,7 @@ export default {
     }
   },
   methods: {
+    // 配置表单项
     configFormItems(items) {
       items = items.filter(item => !['waers', 'status', 'isdelete'].includes(item.prop))
       mergeConfig(items, [{
@@ -109,7 +93,7 @@ export default {
         prop: 'memo',
         label: '原因/用途'
       }])
-      if (!this.id) { // 创建页特殊处理
+      if (!this.page().id) { // 创建页特殊处理
         items = items.filter(item => !['isprint', 'printnum'].includes(item.prop))
         // 申请日期、采购订单日期只在创建页面可编辑
         mergeConfig(items, [
@@ -124,6 +108,7 @@ export default {
       }
       return items
     },
+    // 动态计算form属性值
     computeFormData(form) {
       if (form.bsart && !form.memo) {
         form.memo = '自动生成备注，凭证类型：' + form.bsart
@@ -132,11 +117,11 @@ export default {
     },
     // 根据表单数据动态计算表单配置
     computeFormItems({ items, form }) {
-      if (form.issappr === 'Y') {
+      if (form.issappr === 'Y') { // [issappr:是否SAP采购申请]为"是"时移除表单项[recommenvent:推荐供应商]
         // 移除表单项会触发表单项重新排列
         items = items.filter(item => item.prop !== 'recommenvent')
       }
-      mergeConfig(items, [{
+      mergeConfig(items, [{ // 根据[issappr:是否SAP采购申请]的值动态计算[formtype:单据类型]和[actorid:经办人]的表单配置项
         prop: 'formtype', // 修改单据类型
         editable: form.issappr !== 'Y',
         required: form.issappr !== 'Y'
@@ -146,14 +131,16 @@ export default {
       }])
       return items
     },
+    // 配置工具栏
     configToolbarItems(items) {
-      if (!this.id) {
+      if (!this.page().id) { // 创建页面的特殊配置
         mergeConfig(items, [{
           action: '_submitProcess',
           disabled: true
         }], 'action')
       }
     },
+    // 配置子对象编辑页的表单项
     configSubBoFormItems({ boName, items }) {
       if (boName === 'PurchaseAppItemFro') { // 配置子对象：项目预览
         items = items.filter(item => !['mwskz'].includes(item.prop)) // 税码、工厂的下拉字典表项值不唯一，会报错，先去掉
@@ -197,6 +184,7 @@ export default {
       }
       return items
     },
+    // 动态计算子对象工具栏
     computeSubBoFormItems({ boName, items, form }) {
       if (boName === 'PurchaseAppItemFro') {
         mergeConfig(items, [{
@@ -212,6 +200,7 @@ export default {
       }
       return [...items]
     },
+    // 动态计算子对象表单数据
     computeSubBoFormData({ boName, form }) {
       if (boName === 'PurchaseAppItemFro') {
         // 锁选的“knttp:科目分配类别”自动填单

@@ -1,5 +1,45 @@
 <template>
   <div>
+    <sticky :z-index="10" class-name="sub-navbar draft" :sticky-top="84">
+      <el-button
+        v-for="(item,index) of computeToolbarItems(toolbarItems)"
+        :key="index"
+        :type="item.btnType"
+        :loading="item.loading"
+        :disabled="item.disabled"
+        @click="_toolbarItemClick(item)"
+      >{{ item.label }}</el-button>
+    </sticky>
+    <div>
+      <div class="small-title">
+        <span>流程审批信息</span>
+        <el-button type="text" @click="showTaskHistory=true">审批历史</el-button>
+        <el-divider />
+      </div>
+      <el-form label-width="140px" label-position="right" :inline="false" class="form-container">
+        <el-row type="flex">
+          <el-col><el-form-item label="当前状态"><el-input /></el-form-item></el-col>
+          <el-col><el-form-item label="当前办理人"><el-input /></el-form-item></el-col>
+        </el-row>
+        <el-row type="flex">
+          <el-col><el-form-item label="上一节点审批意见"><el-input /></el-form-item></el-col>
+        </el-row>
+        <el-row type="flex">
+          <el-col><el-form-item label="下一步操作"><el-select /></el-form-item></el-col>
+          <el-col><el-form-item label="处理时间"><el-input /></el-form-item></el-col>
+        </el-row>
+        <el-row type="flex">
+          <el-col><el-form-item label="审批意见"><el-input /></el-form-item></el-col>
+        </el-row>
+      </el-form>
+      <el-drawer title="审批历史" :visible.sync="showTaskHistory" direction="btt" :modal-append-to-body="false">
+        <div>审批。。。。。</div>
+      </el-drawer>
+    </div>
+    <div class="small-title">
+      <span>{{ boInfo.boText }}信息</span>
+      <el-divider />
+    </div>
     <pr-bo-form
       ref="form"
       :model="form"
@@ -9,20 +49,7 @@
       :compute-form-items="computeFormItems"
       :compute-form-data="computeFormData"
       @update="formUpdate"
-    >
-      <template slot="top">
-        <sticky :z-index="10" class-name="sub-navbar draft" :sticky-top="84">
-          <el-button
-            v-for="(item,index) of computeToolbarItems(toolbarItems)"
-            :key="index"
-            :type="item.btnType"
-            :loading="item.loading"
-            :disabled="item.disabled"
-            @click="_toolbarItemClick(item)"
-          >{{ item.label }}</el-button>
-        </sticky>
-      </template>
-    </pr-bo-form>
+    />
     <el-tabs v-model="activeTag" class="tabs-container">
       <el-tab-pane v-for="(subConfig,index) of subBos" :key="index" :label="subConfig.label" :name="'tag_'+index">
         <pr-sub-bo-grid
@@ -73,13 +100,32 @@ export default {
         return this.$route && this.$route.meta && this.$route.meta.boName || ''
       }
     },
+    /**
+     * 是否可编辑，默认会读取当前页面路由的meta.editable
+     */
     editable: {
       type: Boolean,
-      default: false
+      default: function() {
+        return this.$route.meta.editable || false
+      }
     },
+    /**
+     * 编辑的主对象id，默认会读取路由路径上的id参数
+     */
     id: {
       type: String,
-      default: ''
+      default: function() {
+        return this.$route.params.id || ''
+      }
+    },
+    /**
+     * 如果页面作为待办任务页面，会带上任务id
+     */
+    taskId: {
+      type: String,
+      default: function() {
+        return this.$route.params.taskId || ''
+      }
     },
     configFormItems: {
       type: [Function, Array],
@@ -146,7 +192,8 @@ export default {
       tempRoute: {},
       activeTag: '',
       toolbarItems: [],
-      subBos: []
+      subBos: [],
+      showTaskHistory: false
     }
   },
   computed: {
@@ -397,39 +444,30 @@ export default {
 <style lang="scss" scoped>
   @import "~@/styles/mixin.scss";
 
-  .form-container {
-    position: relative;
-
-    /*.top-btn-sticky {*/
-    /*padding-top: 84px;*/
-    /*}*/
-
-    .form-main-container {
-      padding: 40px 45px 20px 50px;
-      max-width: 1200px;
-      margin: 0 auto;
-
-      .line-feed /deep/ label {
-        line-height: 18px;
-      }
-
-      .el-col {
-        max-width: 900px;
-      }
-
-      .span-1 {
-        /*.el-input {*/
-        /*width: 300px;*/
-        /*}*/
-        /*.el-select {*/
-        /*width: 300px;*/
-        /*}*/
-      }
-    }
-  }
-
-  .el-form-item__content>div {
+  .small-title {
+    max-width: 1200px;
+    padding: 10px 45px 10px 40px;
     width: 100%;
+
+    span {
+      padding: 0 20px;
+      height: 40px;
+      line-height: 40px;
+      display: inline-block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #303133;
+      position: relative;
+    }
+
+    .el-button {
+      float: right;
+      margin-right: 20px;
+    }
+
+    /deep/ .el-divider--horizontal {
+      margin: 0
+    }
   }
 
   .tabs-container {

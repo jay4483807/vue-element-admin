@@ -82,3 +82,8 @@
 .el-range-separator {
   box-sizing: content-box;
 }
+
+// 解决drawer弹出时标题会出现一个蓝框的问题
+.el-drawer__header span:focus {
+  outline: none;
+}

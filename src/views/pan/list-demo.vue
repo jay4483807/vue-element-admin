@@ -1,25 +1,18 @@
 <template>
   <list-page
     ref="page"
-    :config-quick-search-items="configQuickSearchItems"
-    :config-search-more-items="configSearchMoreItems"
-    :config-toolbar-items="configToolbarItems"
-    :config-grid-columns="configGridColumns"
-    :config-grid-actions="configGridActions"
-    :compute-toolbar-items="computeToolbarItems"
-    :compute-grid-actions="computeGridActions"
-    :grid-query-params="queryParams"
+    v-bind="bindProps"
     @selection-change="selectedRows = $event"
   />
 </template>
 
 <script>
-import ListPage from '@/views/pan/components/listPage'
 import { mergeConfig } from '@/utils/pan'
 import { ACTION, UI_TYPE } from '@/constants'
+import list from '@/views/pan/components/list'
 
 export default {
-  components: { ListPage },
+  mixins: [list],
   data() {
     return {
       // 扩展列表查询条件
@@ -140,8 +133,8 @@ export default {
       return items
     },
     // 动态计算每一行的按钮项
-    computeGridActions(items, row, rowIndex) {
-      return items.map(item => {
+    computeGridActions({ actions, row, rowIndex }) {
+      return actions.map(item => {
         if (item.action === ACTION.EDIT) {
           // 注意这里每一行的配置项值可能不同，需要构造一个新的对象返回
           return {
