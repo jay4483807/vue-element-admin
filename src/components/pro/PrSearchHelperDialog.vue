@@ -34,7 +34,7 @@
       :page.sync="listQuery.page"
       :limit.sync="listQuery.limit"
       :selected-size="selectedRows.length"
-      :selected-size-clickable="true"
+      :show-selected-size="true"
       @changeShowSelectedOnly="changeShowSelectedOnly"
       @pagination="getList"
     />

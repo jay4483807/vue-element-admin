@@ -126,6 +126,18 @@ export const constantRoutes = [
       }
     ]
   }, {
+    path: '/pan',
+    component: Layout,
+    meta: { title: '平台' },
+    children: [
+      {
+        path: '/todo/list',
+        component: () => import('@/views/pan/todo-list'),
+        name: 'TaskList',
+        meta: { title: '待办事项' }
+      }
+    ]
+  }, {
     path: '/demo',
     component: Layout,
     alwaysShow: true, // will always show the root menu
@@ -134,24 +146,30 @@ export const constantRoutes = [
     children: [{
       path: 'purchase-apply-front/manage',
       name: 'PurchaseApplyFrontManageDemo',
-      component: () => import('@/views/pan/list-demo'),
+      component: () => import('@/views/pan-demo/list-demo'),
       meta: { title: '采购申请管理Demo', boName: 'PurchaseApplyFront' }
     }, {
       path: 'purchase-apply-front/create',
       name: 'PurchaseApplyFrontCreateDemo',
-      component: () => import('@/views/pan/edit-demo'),
+      component: () => import('@/views/pan-demo/edit-demo'),
       meta: { title: '创建采购申请Demo', boName: 'PurchaseApplyFront', editable: true, noCache: true },
       hidden: true
     }, {
       path: 'purchase-apply-front/edit/:id',
       name: 'PurchaseApplyFrontEditDemo',
-      component: () => import('@/views/pan/edit-demo'),
+      component: () => import('@/views/pan-demo/edit-demo'),
       meta: { title: '编辑采购申请Demo', boName: 'PurchaseApplyFront', editable: true, noCache: true },
       hidden: true
     }, {
       path: 'purchase-apply-front/view/:id',
       name: 'PurchaseApplyFrontViewDemo',
-      component: () => import('@/views/pan/edit-demo'),
+      component: () => import('@/views/pan-demo/edit-demo'),
+      meta: { title: '查看采购申请Demo', boName: 'PurchaseApplyFront', editable: false, noCache: true },
+      hidden: true
+    }, {
+      path: 'purchase-apply-front/task/:id/:taskId',
+      name: 'PurchaseApplyFrontTaskDemo',
+      component: () => import('@/views/pan-demo/edit-demo'),
       meta: { title: '查看采购申请Demo', boName: 'PurchaseApplyFront', editable: false, noCache: true },
       hidden: true
     }]

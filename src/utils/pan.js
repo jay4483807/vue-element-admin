@@ -13,8 +13,8 @@ export function transBlank(str, replaceValue) {
   return isBlank(str) ? replaceValue : str
 }
 
-export function transBoolean(value) {
-  return value === 'X'
+export function transBoolean(value, defaultValue) {
+  return value === 'X' ? true : defaultValue
 }
 
 export function transNumber(value, defaultValue = 0) {

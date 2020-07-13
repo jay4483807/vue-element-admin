@@ -1,12 +1,15 @@
 import Layout from '@/layout'
 import Menu from '@/layout/menu'
 import { mergeConfig, transBlank } from '@/utils/pan'
+import { boImports } from './panRoutes'
 
 const PAGE = {
   MANAGE: 'manage',
   CREATE: 'create',
   EDIT: 'edit',
-  VIEW: 'view'
+  VIEW: 'view',
+  // 待办任务处理页面
+  TASK: 'task'
 }
 
 export function generateRoutesByMenusData(menusData) {
@@ -45,7 +48,7 @@ function generateSubRoutes(menuId, menuInfos) {
         children: generateSubRoutes(menu.NODEID, menuInfos)
       })
     } else {
-      const routeConfig = panRouters.find(r => r.resUrl === menu.URL)
+      const routeConfig = extRouters.find(r => r.resUrl === menu.URL)
       if (routeConfig && routeConfig.children) {
         subRoutes.push(...routeConfig.children)
       } else {
@@ -53,10 +56,9 @@ function generateSubRoutes(menuId, menuInfos) {
         const path = (transBlank(menu.APPMODEL, '')) + '/' + (viewPath || menu.NODEID)
         const boName = menu.BONAME
         const boText = menu.DESCRIPTION
-        let manageImport = () => import('@/views/pan/list')
-        if (viewPath) { // TODO webpack构建打包构建时无法事先载入动态构造的import路径，所以这里动态import是无效的
-          manageImport = () => import('@/views/' + viewPath + '/' + PAGE.MANAGE)
-        }
+        const boImport = boImports[boName]
+        const manageImport = boImport && boImport.manage || (() => import('@/views/pan/list'))
+        const editImport = boImport && boImport.edit || (() => import('@/views/pan/edit'))
         const routes = [
           {
             page: PAGE.MANAGE,
@@ -67,23 +69,33 @@ function generateSubRoutes(menuId, menuInfos) {
           }, {
             page: PAGE.CREATE,
             path: path + '/create',
-            component: () => import('@/views/pan/edit'),
+            component: editImport,
             name: boName + 'Create',
             meta: { title: '创建' + boText, boName: boName, editable: true },
             hidden: true
           }, {
             page: PAGE.EDIT,
             path: path + '/edit/:id',
-            component: () => import('@/views/pan/edit'),
+            component: editImport,
             name: boName + 'Edit',
+            props: true,
             meta: { title: '编辑' + boText, boName: boName, editable: true },
             hidden: true
           }, {
             page: PAGE.VIEW,
             path: path + '/view/:id',
-            component: () => import('@/views/pan/edit'),
+            component: editImport,
             name: boName + 'View',
+            props: true,
             meta: { title: '查看' + boText, boName: boName, editable: false },
+            hidden: true
+          }, {
+            page: PAGE.TASK,
+            path: path + '/task/:taskId/:id',
+            component: editImport,
+            name: boName + 'Task',
+            props: true,
+            meta: { title: '办理待办任务 ' + boText, boName: boName, editable: false },
             hidden: true
           }
         ]
@@ -104,15 +116,8 @@ function findSubMenus(nodeId, menuInfos) {
   }
   return arr
 }
-export const panRouters = [{
-  // 采购申请管理
-  resUrl: 'MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_manage',
-  merge: [{
-    page: PAGE.MANAGE,
-    component: () => import('@/views/purchase-apply-front/manage')
-  }],
-  hello: import('@/views/purchase-apply-front/manage')
-}, {
+
+const extRouters = [{
   // 人员定位卡申请
   resUrl: 'MECSS/administration/perlocatcard/perLocatCardController.spr?action=_manage',
   children: [
@@ -172,4 +177,3 @@ export const panRouters = [{
   ]
 }]
 
-export default panRouters

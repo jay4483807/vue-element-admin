@@ -6,7 +6,8 @@ export const ACTION = {
   DELETE: '_delete',
   DELETES: '_deletes',
   SAVE: '_saveOrUpdate',
-  CANCEL: '_cancel'
+  CANCEL: '_cancel',
+  SUBMIT_PROCESS: '_submitProcess'
 }
 
 export const UI_TYPE = {

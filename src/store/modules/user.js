@@ -11,7 +11,8 @@ const state = {
   introduction: '',
   roles: [],
   userId: '',
-  menus: []
+  menus: [],
+  clientId: process.env.VUE_APP_CLIENT
 }
 
 const mutations = {

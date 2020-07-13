@@ -53,7 +53,9 @@ export const BoProperty = {
 export const BoMethod = {
   action: String,
   label: String,
-  url: String
+  url: String,
+  // 是否隐藏此按钮
+  hidden: Boolean
 }
 // 列表项
 export const GridColumns = {
@@ -81,7 +83,7 @@ export const FormItem = {
   // 是否可见
   visibility: Boolean,
   // 是否隐藏，默认false，与visibility区别是hide的表单项还会占据位置，而visibility=false的不会
-  hide: Boolean,
+  hidden: Boolean,
   // 是否必填
   required: Boolean,
   // 是否可编辑
@@ -92,7 +94,7 @@ export const FormItem = {
   colNo: Number
 }
 
-function boQueryGrid(boName, defaultCondition, orderSql) {
+export function boQueryGrid(boName, defaultCondition, orderSql, queryParams) {
   return request({
     url: '/gridQueryController.spr?action=queryGrid',
     data: {
@@ -104,7 +106,8 @@ function boQueryGrid(boName, defaultCondition, orderSql) {
       groupBySql: null,
       distinctSupport: false,
       start: 0,
-      limit: 1000
+      limit: 1000,
+      ...queryParams
     }
   })
 }
@@ -121,7 +124,9 @@ export async function getBoInfo(boName) {
       boName: coustom.boname,
       boId: coustom.boid,
       boText: coustom.description,
-      tableName: coustom.tablename
+      tableName: coustom.tablename,
+      routePath: coustom.vueroute,
+      appModel: coustom.appmodel
     }
     const { data } = await boQueryGrid('BizProperty', "%20YPROPERTIES.BOID='" + boInfo.boId + "'", 'PROTYPE,COLUMNNO')
     const boProps = {}
@@ -212,6 +217,7 @@ export async function getFormItems(boName) {
     const { boId } = await getBoInfo(boName)
     const { data } = await boQueryGrid('BizFormColumn', "%20YFORMCOLUMN.BOID='" + boId + "'", 'ROWNO,COLUMNNO')
     return data.map(col => {
+      const readonly = transBoolean(col.readonly, undefined)
       return {
         // 对应属性名
         prop: col.proname,
@@ -221,7 +227,7 @@ export async function getFormItems(boName) {
         defaultValue: transBlank(col.defaultvalue),
         visibility: transBoolean(col.visibility),
         required: transBoolean(col.nullable),
-        editable: !transBoolean(col.readonly),
+        editable: readonly !== undefined ? !readonly : undefined,
         colNo: transNumber(col.columnno),
         rowNo: transNumber(col.rowno)
       }
@@ -273,33 +279,27 @@ async function getOrFetch(map, key, fetchFunc) {
   return result
 }
 
-export async function buildQueryParams(items, itemParams, boName) {
-  const boProps = await getBoProperties(boName)
+export function buildQueryParams(items, queryParams, boProps) {
   const params = {}
   for (const item of items) {
-    buildQueryParamsOfItem(item, itemParams[item.prop], params, boProps)
+    buildQueryParamsOfItem(item, queryParams[item.prop], params, boProps)
   }
   return params
 }
 
 function buildQueryParamsOfItem(item, value, params, boProps) {
-  const property = boProps[item.prop]
-  if (!property) {
-    console.log('找不到属性[' + item.prop + ']对应的属性', item)
-    return
-  }
-  value = value || ''
+  if (isBlank(value)) { return }
+  const property = boProps && boProps[item.prop] || undefined
+  params[item.prop + '.fieldName'] = property && (property.tabname + '.' + property.colname) || item.prop
   params[item.prop + '.option'] = item.option || 'like'
   switch (item.uiType) {
     case UI_TYPE.DATE: {
       params[item.prop + '.fieldValue'] = value && moment(value).format(FORMAT.DATE)
-      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
       params[item.prop + '.dataType'] = 'D'
       break
     }
     case UI_TYPE.DATE_TIME: {
       params[item.prop + '.fieldValue'] = value && moment(value).format(FORMAT.DATE_TIME)
-      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
       params[item.prop + '.dataType'] = 'D'
       break
     }
@@ -307,7 +307,6 @@ function buildQueryParamsOfItem(item, value, params, boProps) {
       params[item.prop + '.isRangeValue'] = true
       params[item.prop + '.minValue'] = value && moment(value[0]).format(FORMAT.DATE)
       params[item.prop + '.maxValue'] = value && moment(value[1]).format(FORMAT.DATE)
-      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
       params[item.prop + '.dataType'] = 'D'
       break
     }
@@ -315,7 +314,6 @@ function buildQueryParamsOfItem(item, value, params, boProps) {
       params[item.prop + '.isRangeValue'] = true
       params[item.prop + '.minValue'] = value && moment(value[0]).format(FORMAT.DATE_TIME)
       params[item.prop + '.maxValue'] = value && moment(value[1]).format(FORMAT.DATE_TIME)
-      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
       params[item.prop + '.dataType'] = 'D'
       break
     }
@@ -323,13 +321,12 @@ function buildQueryParamsOfItem(item, value, params, boProps) {
     case UI_TYPE.TEXT:
     default: {
       params[item.prop + '.fieldValue'] = value
-      params[item.prop + '.fieldName'] = property.tabname + '.' + property.colname
       params[item.prop + '.dataType'] = 'S'
     }
   }
 }
 
-export async function queryList(query, boName = '') {
+export async function queryList(query, boName = 'null') {
   return pageQuery('/gridQueryController.spr?action=queryGrid', {
     boName,
     defaultCondition: '',
@@ -450,7 +447,7 @@ export async function buildGridConfig(boName, option = {}) {
   config.gridColumns = columns.filter(col => {
     return col.visibility && !col.action
   }).map(col => {
-    col.width = Math.max(80, col.width)
+    if (!col.minWdith) { col.minWdith = 80 }
     return col
   })
   config.gridColumns = executeConfig(option.configGridColumns, option, config.gridColumns)
@@ -502,4 +499,12 @@ export async function buildFormItemConfig(col, boProperties) {
     item.selectOptions = await getDict(boProperties[item.prop].dictName)
   }
   return item
+}
+
+export async function getBoBaseUrl(boName) {
+  const boInfo = await getBoInfo(boName)
+  if (!boInfo.routePath) {
+    throw new Error('未配置业务对象[' + boName + ']的vue路径')
+  }
+  return boInfo.appModel + '/' + boInfo.routePath
 }

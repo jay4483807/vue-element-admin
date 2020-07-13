@@ -85,7 +85,7 @@
       :config-toolbar-items="configToolbarItems"
       :config-grid-actions="configGridActions"
       :auto-load="false"
-      :query-params="gridQueryParams"
+      :query-params="queryParams"
       v-bind="$attrs"
       v-on="$listeners"
       @selection-change="_handleSelectionChange"
@@ -219,6 +219,14 @@ export default {
       }
     }
   },
+  computed: {
+    queryParams() {
+      return {
+        ...buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boInfo.props),
+        ...this.gridQueryParams
+      }
+    }
+  },
   beforeCreate() {
     this.UI_TYPE = UI_TYPE
   },
@@ -245,9 +253,8 @@ export default {
       }
       this.load() // grid配置完成后立即拉取一次grid数据
     },
-    async load() {
-      const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
-      this.$refs.grid.load(queryParams)
+    load() {
+      this.$refs.grid.load()
     },
     getList() {
       return this.$refs.grid.list

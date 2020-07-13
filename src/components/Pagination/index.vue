@@ -14,7 +14,7 @@
         @current-change="handleCurrentChange"
       >
         <span v-if="selectedSize!==undefined" class="select">
-          共{{ total }}条 已选<a v-if="selectedSizeClickable" @click="changeShowSelectedOnly"> {{ selectedSize }} </a><template v-else>{{ selectedSize }}</template>条
+          共{{ total }}条<template v-if="showSelectedSize"> 已选<a @click="changeShowSelectedOnly"> {{ selectedSize }} </a>条</template>
         </span>
       </el-pagination>
     </div>
@@ -65,8 +65,7 @@ export default {
       type: Number,
       default: undefined
     },
-    // 已选记录数是否可点击
-    selectedSizeClickable: {
+    showSelectedSize: {
       type: Boolean,
       default: false
     },

@@ -3,7 +3,8 @@ export default {
   data() {
     return {
       id: this.$route.params.id || '',
-      editable: this.$route.meta.editable || false
+      editable: this.$route.meta.editable || false,
+      taskId: this.$route.params.taskId || ''
     }
   },
   created() {
@@ -14,7 +15,11 @@ export default {
       configToolbarItems: this.configToolbarItems,
       configSubBoFormItems: this.configSubBoFormItems,
       computeSubBoFormItems: this.computeSubBoFormItems,
-      computeSubBoFormData: this.computeSubBoFormData
+      computeSubBoFormData: this.computeSubBoFormData,
+      id: this.id,
+      editable: this.editable,
+      taskId: this.taskId,
+      ...this.$attrs
     }
   },
   methods: {

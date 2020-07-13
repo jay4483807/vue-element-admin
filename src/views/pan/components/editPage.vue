@@ -10,7 +10,7 @@
         @click="_toolbarItemClick(item)"
       >{{ item.label }}</el-button>
     </sticky>
-    <div>
+    <div v-if="taskId">
       <div class="small-title">
         <span>流程审批信息</span>
         <el-button type="text" @click="showTaskHistory=true">审批历史</el-button>
@@ -18,22 +18,26 @@
       </div>
       <el-form label-width="140px" label-position="right" :inline="false" class="form-container">
         <el-row type="flex">
-          <el-col><el-form-item label="当前状态"><el-input /></el-form-item></el-col>
-          <el-col><el-form-item label="当前办理人"><el-input /></el-form-item></el-col>
+          <el-col><el-form-item label="当前状态"><el-input v-model="taskForm.taskName" :disabled="true" /></el-form-item></el-col>
+          <el-col><el-form-item label="当前办理人"><el-input v-model="taskForm.currentActorName" :disabled="true" /></el-form-item></el-col>
         </el-row>
         <el-row type="flex">
-          <el-col><el-form-item label="上一节点审批意见"><el-input /></el-form-item></el-col>
+          <el-col><el-form-item label="上一节点审批意见"><el-input v-model="taskForm.lastApprovalOpinion" :disabled="true" /></el-form-item></el-col>
         </el-row>
         <el-row type="flex">
-          <el-col><el-form-item label="下一步操作"><el-select /></el-form-item></el-col>
-          <el-col><el-form-item label="处理时间"><el-input /></el-form-item></el-col>
+          <el-col><el-form-item label="下一步操作"><el-select v-model="taskForm.nextOperation">
+            <el-option v-for="(opt,index) of taskNextOption" :key="index" :value="opt.value">{{ opt.text }}</el-option>
+          </el-select></el-form-item></el-col>
+          <el-col><el-form-item label="处理时间"><el-input v-model="taskForm.currentTime" :disabled="true" /></el-form-item></el-col>
         </el-row>
         <el-row type="flex">
-          <el-col><el-form-item label="审批意见"><el-input /></el-form-item></el-col>
+          <el-col><el-form-item label="审批意见"><el-input v-model="taskForm.approvalOpinion" /></el-form-item></el-col>
         </el-row>
       </el-form>
-      <el-drawer title="审批历史" :visible.sync="showTaskHistory" direction="btt" :modal-append-to-body="false">
-        <div>审批。。。。。</div>
+      <el-drawer title="审批历史" :visible.sync="showTaskHistory" direction="btt" :modal-append-to-body="false" size="">
+        <div style="margin-bottom: 20px">
+          <pr-grid :grid-columns="taskHistoryColumns" :query-params="taskHistoryQueryParams" :height="300" :selectable="false" :pageable="false" />
+        </div>
       </el-drawer>
     </div>
     <div class="small-title">
@@ -59,6 +63,7 @@
           :bo-name="subConfig.boName"
           :query-params="subConfig.queryParams"
           :auto-load="!!id"
+          :selectable="editable"
           :config-grid-actions="configSubBoGridActions(subConfig)"
           :config-toolbar-items="_configSubBoToolbarItems(subConfig)"
           :config-form-items="_configSubBoFormItems(subConfig)"
@@ -84,10 +89,11 @@ import boComponent from '@/components/pro/mixins/boComponent'
 import { getFormToolbar } from '@/store/action-types'
 import { mapActions } from 'vuex'
 import { executeConfig } from '@/utils/pan'
+import PrGrid from '@/components/pro/PrGrid'
 
 export default {
   name: 'EditPage',
-  components: { PrSubBoGrid, PrBoForm, Sticky },
+  components: { PrGrid, PrSubBoGrid, PrBoForm, Sticky },
   mixins: [boComponent],
   props: {
     /**
@@ -101,21 +107,21 @@ export default {
       }
     },
     /**
-     * 是否可编辑，默认会读取当前页面路由的meta.editable
+     * 是否可编辑
      */
     editable: {
       type: Boolean,
       default: function() {
-        return this.$route.meta.editable || false
+        return true
       }
     },
     /**
-     * 编辑的主对象id，默认会读取路由路径上的id参数
+     * 编辑的主对象id
      */
     id: {
       type: String,
       default: function() {
-        return this.$route.params.id || ''
+        return ''
       }
     },
     /**
@@ -124,7 +130,7 @@ export default {
     taskId: {
       type: String,
       default: function() {
-        return this.$route.params.taskId || ''
+        return ''
       }
     },
     configFormItems: {
@@ -193,11 +199,66 @@ export default {
       activeTag: '',
       toolbarItems: [],
       subBos: [],
-      showTaskHistory: false
+      showTaskHistory: false,
+      taskForm: {
+        // 当前状态
+        taskName: '',
+        // 当前处理人
+        currentActor: '',
+        currentActorName: '',
+        // 上一节点审批意见
+        lastApprovalOpinion: '',
+        // 下一步操作
+        nextOperation: '',
+        // 处理时间
+        currentTime: '',
+        // 审批意见
+        approvalOpinion: ''
+      },
+      // 下一步操作选项
+      taskNextOption: [],
+      taskHistoryColumns: [{
+        prop: 'TASKNAME',
+        label: '任务名称'
+      }, {
+        prop: 'EXAMINERESULT',
+        label: '执行动作'
+      }, {
+        prop: 'EXAMINE',
+        label: '审批意见'
+      }, {
+        prop: 'EXAMINEPERSON',
+        label: '审批人'
+      }, {
+        prop: 'NODEACTOR',
+        label: '待审批人'
+      }, {
+        prop: 'TASKCREATETIME',
+        label: '开始时间'
+      }, {
+        prop: 'WITHTIME',
+        label: '审批用时'
+      }, {
+        prop: 'REFERENCETIME',
+        label: '参考审批时间'
+      }, {
+        prop: 'CONTRASTTIME',
+        label: '参考与用时时间差'
+      }]
     }
   },
   computed: {
-
+    computedToolbarItems() {
+      return this.computeToolbarItems(this.toolbarItems).filter(item => item.hidden !== true)
+    },
+    taskHistoryQueryParams() {
+      return {
+        defaultCondition: ` (BUSINESSID='${this.id}' or PARENTBUSINESSID='${this.id}') `,
+        orderSql: ' TASKCREATETIME DESC',
+        handlerClass: 'com.panform.pan.businessprocess.engine.web.TaskHistoryGrid',
+        tableName: 'V_WF_TASKINS'
+      }
+    }
   },
   async created() {
     const boInfo = await this.getBoInfo(this.boName)
@@ -218,6 +279,28 @@ export default {
       }
       if (item.action === ACTION.CANCEL) {
         item.btnType = 'info'
+      } else if (item.action === ACTION.SAVE) {
+        if (!this.editable) { // 不可编辑状态隐藏保存按钮
+          item.hidden = true
+        }
+      }
+      switch (item.action) {
+        case ACTION.CANCEL: {
+          item.btnType = 'info'
+          break
+        }
+        case ACTION.SAVE: {
+          if (!this.editable) { // 不可编辑状态隐藏保存按钮
+            item.hidden = true
+          }
+          break
+        }
+        case ACTION.SUBMIT_PROCESS: {
+          if (!this.taskId) { // 待办任务状态的页面才出现提交按钮
+            item.hidden = true
+          }
+          break
+        }
       }
       return item
     })
@@ -240,6 +323,10 @@ export default {
     this.subBos = subBos
     if (subBos.length > 0) {
       this.activeTag = 'tag_0'
+    }
+
+    if (this.taskId) {
+      this._getTaskInfo()
     }
 
     if (this.id) {
@@ -309,9 +396,9 @@ export default {
     buildSubBoGridQueryParams(boInfo, subBoInfo) {
       let defaultCondition
       if (subBoInfo.boName === 'Attachement') { // 附件特殊处理
-        defaultCondition = '%20YATTACHEMENT.BUSINESSID=\'' + this.id + '\''
+        defaultCondition = ' YATTACHEMENT.BUSINESSID=\'' + this.id + '\''
       } else {
-        defaultCondition = '%20' + subBoInfo.tableName + '.' + boInfo.props[boInfo.idProp].colname + '=\'' + this.id + '\''
+        defaultCondition = ' ' + subBoInfo.tableName + '.' + boInfo.props[boInfo.idProp].colname + '=\'' + this.id + '\''
       }
       return {
         defaultCondition
@@ -330,25 +417,9 @@ export default {
       this.$refs.form.validate(valid => {
         if (valid) {
           item.loading = true
-          const saveData = this.$refs.form.getFormForSave()
-          const subObject = []
-          for (const { boName } of this.subBos) {
-            subObject.push(JSON.stringify({
-              objectName: boName,
-              operType: 'modify',
-              values: [...this.getSubBoGrid(boName).getModifyRows(), ...this.getSubBoGrid(boName).getAddRows()]
-            }))
-          }
-          for (const { boName } of this.subBos) {
-            subObject.push(JSON.stringify({
-              objectName: boName,
-              operType: 'delete',
-              values: this.getSubBoGrid(boName).getDeleteRows()
-            }))
-          }
           request({
             url: item.url,
-            data: { ...saveData, subObject }
+            data: this.buildSaveData()
           }).then(rsp => {
             item.loading = false
             this.$message({
@@ -392,6 +463,48 @@ export default {
       // 返回上一步路由
       this.$router.go(-1)
     },
+    async submitProcess(item) {
+      item.loading = true
+      try {
+        await request({
+          url: item.url,
+          data: { ...this.buildSaveData(),
+            upWorkflowExamine: this.taskForm.lastApprovalOpinion,
+            workflowLeaveTransitionName: this.taskForm.nextOperation,
+            workflowExamine: this.taskForm.approvalOpinion,
+            workflowTaskId: this.taskId,
+            workflowCurrentTaskName: this.taskForm.taskName
+          }
+        })
+        this.$message({
+          message: '提交成功',
+          iconClass: 'el-icon-finished',
+          type: 'success'
+        }, 2000)
+        this.close()
+      } finally {
+        item.loading = false
+      }
+    },
+    buildSaveData() {
+      const saveData = this.$refs.form.getFormForSave()
+      const subObject = []
+      for (const { boName } of this.subBos) {
+        subObject.push(JSON.stringify({
+          objectName: boName,
+          operType: 'modify',
+          values: [...this.getSubBoGrid(boName).getModifyRows(), ...this.getSubBoGrid(boName).getAddRows()]
+        }))
+      }
+      for (const { boName } of this.subBos) {
+        subObject.push(JSON.stringify({
+          objectName: boName,
+          operType: 'delete',
+          values: this.getSubBoGrid(boName).getDeleteRows()
+        }))
+      }
+      return { ...saveData, subObject }
+    },
     _toolbarItemClick(item) {
       if (item.clickFunc) {
         item.clickMethod.apply(this, item)
@@ -405,6 +518,10 @@ export default {
         }
         case ACTION.CANCEL: {
           this.close(item)
+          break
+        }
+        case ACTION.SUBMIT_PROCESS: {
+          this.submitProcess(item)
           break
         }
         default: {
@@ -436,6 +553,36 @@ export default {
     },
     formUpdate(form) {
       this.$emit('form-update', form)
+    },
+    async _getTaskInfo() {
+      const { coustom } = await request({
+        url: '/vueController.spr?action=getTaskApprInfo',
+        data: {
+          taskid: this.taskId,
+          businessid: this.id,
+          nodeid: this.$route.query.nodeId || ''
+        }
+      })
+      this.taskForm.taskName = coustom.taskname
+      this.taskForm.currentActorName = coustom.currentactorname
+      this.taskForm.currentActor = coustom.currentactor
+      this.taskForm.currentTime = coustom.currenttime
+      this.taskForm.lastApprovalOpinion = coustom.upexamine
+      this.taskNextOption = (coustom.leavetransitions || []).map(opt => ({
+        value: opt.extendTransitionId,
+        text: opt.transitionName || ''
+      }))
+      this.$watch('taskForm.nextOperation', (newVal, oldVal) => {
+        const newOpt = this.taskNextOption.find(opt => opt.value === newVal)
+        const oldOpt = this.taskNextOption.find(opt => opt.value === oldVal)
+        if (!oldOpt || this.taskForm.approvalOpinion === oldOpt.text) {
+          // 如果用户没有手动修改审批意见，自动填写新增
+          this.taskForm.approvalOpinion = newOpt.text
+        }
+      })
+      if (this.taskNextOption[0]) {
+        this.taskForm.nextOperation = this.taskNextOption[0].value
+      }
     }
   }
 }

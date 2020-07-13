@@ -120,22 +120,22 @@
 <script>
 import {
   buildQueryParams,
-  buildGridConfig
+  buildGridConfig, getBoProperties
 } from '@/api/pan'
 import waves from '@/directive/waves' // waves directive
 import request from '@/utils/request'
 import { UI_TYPE, ACTION } from '@/constants.js'
 import PrSearchHelper from '@/components/pro/PrSearchHelper'
 import PrBoGrid from '@/components/pro/PrBoGrid'
+import boComponent from '@/components/pro/mixins/boComponent'
 
 export default {
   name: 'PurchaseApplyList',
   components: { PrBoGrid, PrSearchHelper },
   directives: { waves },
+  mixins: [boComponent],
   data() {
     return {
-      // 业务对象名
-      boName: this.$route.meta && this.$route.meta.boName || '',
       list: null,
       total: 0,
       listQuery: {
@@ -155,6 +155,11 @@ export default {
         quickSearchItems: [],
         deleteUrl: '/MECSS/purchasemagt/purchaseapplyfrontmagt/purchaseApplyFrontController.spr?action=_delete'
       }
+    }
+  },
+  computed: {
+    queryParams() {
+      return { ...buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boInfo.props) }
     }
   },
   beforeCreate() {
@@ -233,7 +238,7 @@ export default {
       return items
     },
     async getList() {
-      const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, this.boName)
+      const queryParams = await buildQueryParams([...this.config.searchMoreItems, ...this.config.quickSearchItems], this.listQuery, await getBoProperties(this.boName))
       this.$refs.grid.load(queryParams)
     },
     columnFormatter(row, column, cellValue, index) {

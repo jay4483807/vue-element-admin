@@ -15,7 +15,8 @@ export default {
       configGridActions: this.configGridActions,
       computeToolbarItems: this.computeToolbarItems,
       computeGridActions: this.computeGridActions,
-      gridQueryParams: this.queryParams
+      gridQueryParams: this.queryParams,
+      ...this.$attrs
     }
   },
   methods: {

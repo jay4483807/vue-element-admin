@@ -1,72 +1,30 @@
 <template>
-  <div>
-    <el-row :class="toolbarClass">
-      <el-button
-        v-for="(item,index) of computeToolbarItems(config.toolbarItems)"
-        :key="index"
-        class="filter-item"
-        :type="item.btnType || 'primary'"
-        @click="_toolbarItemClick(item)"
-      >{{ item.label }}</el-button>
-    </el-row>
-    <el-table
-      v-if="config.gridColumns.length>0"
-      v-loading="listLoading"
-      v-bind="$attrs"
-      :data="tableRows"
-      :row-key="getRowKey"
-      header-cell-class-name="table-header"
-      fit
-      style="width: 100%"
-      v-on="$listeners"
-      @selection-change="_selectionChange"
-    >
-      <el-table-column type="selection" width="45" :reserve-selection="true" />
-      <el-table-column
-        v-for="(col,index) of config.gridColumns"
-        :key="index"
-        :prop="col.prop"
-        :show-overflow-tooltip="true"
-        :min-width="col.width || ''"
-        align="center"
-        :label="col.label"
-        :formatter="col.formatter"
-      />
-      <el-table-column v-if="config.gridActions.length>0" v-slot="{row,$index}" :width="68*config.gridActions.length+60" align="center" label="操作" fixed="right">
-        <div class="el-button-group">
-          <el-button
-            v-for="(act,index) of _computeGridActions(config.gridActions, row, $index)"
-            :key="index"
-            :type="act.btnType || 'primary'"
-            size="small"
-            :disabled="act.disabled"
-            @click="_gridAction(act, row, $index)"
-          >{{ act.label }}</el-button>
-        </div>
-      </el-table-column>
-    </el-table>
-    <pagination
-      v-show="total>0"
-      :show-selected-only="showSelectedOnly"
-      :total="total"
-      :page.sync="listQuery.page"
-      :limit.sync="listQuery.limit"
-      :selected-size="selectedRows.length"
-      :selected-size-clickable="true"
-      @changeShowSelectedOnly="showSelectedOnly = !showSelectedOnly"
-      @pagination="load"
-    />
-  </div>
+  <pr-grid
+    ref="grid"
+    v-bind="$attrs"
+    :row-key-prop="idProp"
+    :query-params="mergedQueryParams"
+    :grid-actions="gridActions"
+    :grid-columns="gridColumns"
+    :compute-grid-actions="computeGridActions"
+    :toolbar-items="computedToolbarItems"
+    :compute-list-data="computeListData"
+    :row-data-filter="rowDataFilter"
+    v-on="$listeners"
+  />
 </template>
 
 <script>
-import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
-import { buildGridConfig, queryList } from '@/api/pan'
+import { buildFormItemConfig, getBoMethods, getGridColumns, getToolbarItems } from '@/api/pan'
 import boComponent from '@/components/pro/mixins/boComponent'
+import PrGrid from '@/components/pro/PrGrid'
+import { executeConfig, isBlank } from '@/utils/pan'
+import { ACTION } from '@/constants'
+import i18n from 'vue-i18n'
 
 export default {
   name: 'PrBoGrid',
-  components: { Pagination },
+  components: { PrGrid },
   mixins: [boComponent],
   props: {
     queryParams: {
@@ -106,31 +64,9 @@ export default {
         return items
       }
     },
-    autoLoad: {
-      type: Boolean,
-      default: true
-    },
     rowDataFilter: {
       type: Function,
       default: undefined
-    },
-    /**
-     * 加载数据前对请求参数的处理
-     */
-    beforeLoad: {
-      type: Function,
-      default(params) {
-        return params
-      }
-    },
-    /**
-     * 加载数据后对返回结果的处理
-     */
-    afterLoad: {
-      type: Function,
-      default({ list, total, params }) {
-        return { list, total, params }
-      }
     },
     /**
      * 动态计算每一行的gridActions
@@ -157,134 +93,91 @@ export default {
   },
   data() {
     return {
-      config: {
-        idProp: '',
-        gridColumns: [],
-        gridActions: [],
-        toolbarItems: [],
-        searchItems: []
-      },
-      list: [],
-      total: 0,
-      listLoading: false,
-      listQuery: {
-        page: 1,
-        limit: 20
-      },
-      selectedRows: [],
-      showSelectedOnly: false
+      gridColumns: [],
+      gridActions: [],
+      toolbarItems: []
     }
   },
   computed: {
-    tableRows() {
-      return this.showSelectedOnly ? this.selectedRows : this.computeListData(this.list)
+    computedToolbarItems() {
+      return this.computeToolbarItems(this.toolbarItems)
+    },
+    computedGridActions() {
+      return this.computeGridActions(this.gridActions)
+    },
+    mergedQueryParams() {
+      return { boName: this.boName, ...this.queryParams }
     }
   },
   async created() {
-    this.config = {
-      ...this.config,
-      ...await buildGridConfig(this.boName, this)
+    const config = {}
+    const boInfo = await this.getBoInfo(this.boName)
+    const boProps = boInfo.props
+    const boMethods = await getBoMethods(this.boName)
+    if (!this.idProp) {
+      console.error('未找到业务对象[' + this.boName + ']的id属性')
     }
-    this.$emit('configOver', this.config)
-    console.log('构造Grid配置：', this.config)
+    const columns = (await getGridColumns(this.boName)).map(col => {
+      // 复制一份配置，避免多处配置发生冲突
+      return { ...col }
+    })
+    config.gridColumns = columns.filter(col => {
+      return col.visibility && !col.action
+    }).map(col => {
+      col.width = Math.max(80, col.width)
+      return col
+    })
+    config.gridColumns = executeConfig(this.configGridColumns, this, config.gridColumns)
+    config.gridActions = columns.filter(col => {
+      return col.visibility && col.action
+    }).map(col => {
+      if (boMethods[col.action]) {
+        col.label = boMethods[col.action].label || col.label
+        col.url = boMethods[col.action].url
+      }
+      if (isBlank(col.label)) {
+        switch (col.action) {
+          case ACTION.CREATE:
+          case ACTION.EDIT:
+          case ACTION.VIEW:
+          case ACTION.DELETE:
+            col.label = i18n.t('pan.' + col.action)
+        }
+      }
+      return col
+    })
+    config.gridActions = executeConfig(this.configGridActions, this, config.gridActions)
+    // 列表查询选项
+    const searchItems = []
+    for (const col of columns.filter(col => col.isCondition)) {
+      searchItems.push(await buildFormItemConfig(col, boProps))
+    }
+    config.searchItems = searchItems
+
+    config.toolbarItems = (await getToolbarItems(this.boName)).map(item => {
+      item = { ...item } // 复制一份配置，避免多处配置发生冲突
+      if (item.action === ACTION.DELETES) {
+        item.btnType = 'danger'
+      }
+      if (boMethods[item.action]) {
+        item.label = boMethods[item.action].label
+        item.url = boMethods[item.action].url
+      }
+      return item
+    })
+    config.toolbarItems = executeConfig(this.configToolbarItems, this, config.toolbarItems)
+    this.toolbarItems = config.toolbarItems
+    this.gridColumns = config.gridColumns
+    this.gridActions = config.gridActions
+    this.$emit('configOver', config)
+    console.log('构造Grid配置：', config)
   },
   mounted() {
-    if (this.autoLoad) {
-      console.log('auto load grid data:' + this.boName)
-      this.load()
-    }
+
   },
   methods: {
-    async load(queryParams = {}) {
-      let loading = true
-      try {
-        setTimeout(() => { // 延迟一秒后再出现loading动画
-          if (loading) {
-            this.listLoading = true
-          }
-        }, 1000)
-        let params = {
-          ...(this.listQuery || {}),
-          ...(this.queryParams || {}),
-          ...queryParams
-        }
-        params = this.beforeLoad(params)
-        const response = await queryList(params, this.boName)
-        // eslint-disable-next-line prefer-const
-        let { list, total } = this.afterLoad({ list: response.data.items, total: response.data.total, params })
-        if (this.rowDataFilter) {
-          list = list.map(this.rowDataFilter).filter((r) => r)
-          // const resultList = []
-          // for (let r of list) {
-          //   r = this.rowDataFilter(r)
-          //   if (r) {
-          //     resultList.push(r)
-          //   }
-          // }
-          // list = resultList
-        }
-        this.list = list
-        this.total = total
-      } catch (err) {
-        console.log('拉取列表数据发生错误', err)
-      } finally {
-        loading = false
-        this.listLoading = false
-      }
-    },
-    getPage() {
-      return this.listQuery.page
-    },
-    getLimit() {
-      return this.listQuery.limit
-    },
-    updateRow(row, rowIndex) {
-      if (this.rowDataFilter) { row = this.rowDataFilter(row) }
-      if (row) {
-        if (rowIndex < 0) {
-          this.list.unshift(row)
-        } else {
-          this.list.splice(rowIndex, 1, row)
-        }
-      } else if (rowIndex >= 0) { // 如果row为空，表示删除指定下标的元素
-        this.list.splice(rowIndex, 1)
-      }
-    },
-    getRowKey(row) {
-      if (this.idProp) {
-        return row[this.idProp]
-      } else {
-        let key = ''
-        for (const col of this.config.gridColumns) {
-          key += (row[col.prop] || '') + '|'
-        }
-        return key
-      }
-    },
-    _toolbarItemClick(item) {
-      const event = { item }
-      this.$emit('toolbarClick', event)
-      if (item.callback) {
-        item.callback.apply(this, [event])
-      }
-    },
-    _gridAction(item, row, rowIndex) {
-      const event = {
-        item,
-        row,
-        rowIndex
-      }
-      this.$emit('rowBtnClick', event)
-      if (item.callback) {
-        item.callback.apply(this, [event])
-      }
-    },
-    _selectionChange(rows) {
-      this.selectedRows = rows
-      this.$emit('selection-change', rows)
-    },
-    _computeGridActions(actions, row, rowIndex) {
-      return this.computeGridActions({ actions, row, rowIndex })
+    async load() {
+      return this.$refs.grid.load()
     }
   }
 }

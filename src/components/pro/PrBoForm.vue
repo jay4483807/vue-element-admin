@@ -2,44 +2,39 @@
   <el-form ref="form" :label-width="labelWidth" :inline="false" label-position="right" :model="form" :rules="rules" class="form-container">
     <el-row v-for="(row,rowIndex) of formRowColumns" :key="rowIndex" type="flex">
       <el-col v-for="(item,colIndex) of row" :key="colIndex" :span="item && item.span || 24/colSize">
-        <el-form-item v-if="item" v-show="!item.hide" :label="item.label" :prop="item.prop">
+        <el-form-item v-if="item" v-show="!item.hidden" :label="item.label" :prop="item.prop">
           <el-date-picker
             v-if="item.uiType===UI_TYPE.DATE_RANGE"
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
             type="daterange"
             start-placeholder="开始日期"
             range-separator="-"
             end-placeholder="结束日期"
-            :disabled="!(editable && item.editable)"
+            v-bind="item.attrs"
           />
           <el-date-picker
             v-else-if="item.uiType===UI_TYPE.DATE"
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
             type="date"
-            :disabled="!(editable && item.editable)"
+            v-bind="item.attrs"
           />
           <el-date-picker
             v-else-if="item.uiType===UI_TYPE.DATE_TIME"
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
             type="datetime"
-            :disabled="!(editable && item.editable)"
+            v-bind="item.attrs"
           />
           <el-date-picker
             v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
             type="datetimerange"
             start-placeholder="i开始时间"
             range-separator="-"
             end-placeholder="结束日期"
-            :disabled="!(editable && item.editable)"
+            v-bind="item.attrs"
           />
           <pr-search-helper
             v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
             :multi-select="item.multiSelect"
             :search-help-name="item.searchHelpName || ''"
@@ -47,23 +42,21 @@
             :display-field="item.searchHelpDisplayFiled"
             :query-params="item.queryParams"
             :sort-columns="item.sortColumns"
-            :disabled="!(editable && item.editable)"
+            v-bind="item.attrs"
           />
           <el-select
             v-else-if="item.uiType===UI_TYPE.SELECT"
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
             clearable
-            :disabled="!(editable && item.editable)"
+            v-bind="item.attrs"
           >
             <el-option v-for="opt of item.selectOptions" :key="opt.value" :label="opt.text" :value="opt.value" />
           </el-select>
           <el-input
             v-else
-            :ref="'item_'+item.prop"
             v-model="form[item.prop]"
-            :disabled="!(editable && item.editable)"
             :clearable="true"
+            v-bind="item.attrs"
           />
         </el-form-item>
       </el-col>
@@ -132,7 +125,16 @@ export default {
   },
   computed: {
     computedFormItems() {
-      return this.computeFormItems({ items: this.formItems, form: this.form }) || []
+      return (this.computeFormItems({ items: this.formItems, form: this.form }) || []).map(item => {
+        const attrs = { // 各表单项的共有属性统一处理
+          disabled: item.editable === undefined ? !this.editable : !item.editable,
+          ref: 'item_' + item.prop
+        }
+        return {
+          ...item,
+          attrs
+        }
+      })
     },
     formItemMap() {
       const formItemMap = {}

@@ -3,10 +3,10 @@
 </template>
 
 <script>
-import { mergeConfig } from '@/utils/pan'
-import { UI_TYPE } from '@/constants'
+import { mergeConfig } from '../../utils/pan'
+import { UI_TYPE } from '../../constants'
 import moment from 'moment'
-import edit from '@/views/pan/components/edit'
+import edit from '../pan/components/edit'
 
 const YES_NO_ITEM = {
   uiType: UI_TYPE.SELECT,
@@ -106,6 +106,12 @@ export default {
           }
         ])
       }
+      if (this.page().taskId) { // 处理待办任务页面特殊处理
+        mergeConfig(items, [{
+          prop: 'memo',
+          editable: true
+        }])
+      }
       return items
     },
     // 动态计算form属性值
@@ -123,17 +129,17 @@ export default {
       }
       mergeConfig(items, [{ // 根据[issappr:是否SAP采购申请]的值动态计算[formtype:单据类型]和[actorid:经办人]的表单配置项
         prop: 'formtype', // 修改单据类型
-        editable: form.issappr !== 'Y',
+        editable: this.editable ? form.issappr !== 'Y' : undefined,
         required: form.issappr !== 'Y'
       }, {
         prop: 'actorid',
-        hide: form.issappr === 'Y' // 隐藏表单项，不同于移除，它会占住原来的位置
+        hidden: form.issappr === 'Y' // 隐藏表单项，不同于移除，它会占住原来的位置
       }])
       return items
     },
     // 配置工具栏
     configToolbarItems(items) {
-      if (!this.page().id) { // 创建页面的特殊配置
+      if (!this.id) { // 创建页面的特殊配置
         mergeConfig(items, [{
           action: '_submitProcess',
           disabled: true

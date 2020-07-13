@@ -7,9 +7,9 @@
 </template>
 
 <script>
-import { mergeConfig } from '@/utils/pan'
-import { ACTION, UI_TYPE } from '@/constants'
-import list from '@/views/pan/components/list'
+import { mergeConfig } from '../../utils/pan'
+import { ACTION, UI_TYPE } from '../../constants'
+import list from '../pan/components/list'
 
 export default {
   mixins: [list],
