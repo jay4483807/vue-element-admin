@@ -2,7 +2,7 @@
   <div>
     <sticky :z-index="10" class-name="sub-navbar draft" :sticky-top="84">
       <el-button
-        v-for="(item,index) of computeToolbarItems(toolbarItems)"
+        v-for="(item,index) of computedToolbarItems"
         :key="index"
         :type="item.btnType"
         :loading="item.loading"
@@ -19,19 +19,15 @@
       <el-form label-width="140px" label-position="right" :inline="false" class="form-container">
         <el-row type="flex">
           <el-col><el-form-item label="当前状态"><el-input v-model="taskForm.taskName" :disabled="true" /></el-form-item></el-col>
-          <el-col><el-form-item label="当前办理人"><el-input v-model="taskForm.currentActorName" :disabled="true" /></el-form-item></el-col>
-        </el-row>
-        <el-row type="flex">
           <el-col><el-form-item label="上一节点审批意见"><el-input v-model="taskForm.lastApprovalOpinion" :disabled="true" /></el-form-item></el-col>
+          <el-col><el-form-item label="当前办理人"><el-input v-model="taskForm.currentActorName" :disabled="true" /></el-form-item></el-col>
         </el-row>
         <el-row type="flex">
           <el-col><el-form-item label="下一步操作"><el-select v-model="taskForm.nextOperation">
             <el-option v-for="(opt,index) of taskNextOption" :key="index" :value="opt.value">{{ opt.text }}</el-option>
           </el-select></el-form-item></el-col>
-          <el-col><el-form-item label="处理时间"><el-input v-model="taskForm.currentTime" :disabled="true" /></el-form-item></el-col>
-        </el-row>
-        <el-row type="flex">
           <el-col><el-form-item label="审批意见"><el-input v-model="taskForm.approvalOpinion" /></el-form-item></el-col>
+          <el-col><el-form-item label="处理时间"><el-input v-model="taskForm.currentTime" :disabled="true" /></el-form-item></el-col>
         </el-row>
       </el-form>
       <el-drawer title="审批历史" :visible.sync="showTaskHistory" direction="btt" :modal-append-to-body="false" size="">
@@ -62,6 +58,9 @@
           toolbar-class="el-button-group"
           :bo-name="subConfig.boName"
           :query-params="subConfig.queryParams"
+          :parent-bo-name="boName"
+          :parent-bo-id="id"
+          :prop="subConfig.prop"
           :auto-load="!!id"
           :selectable="editable"
           :config-grid-actions="configSubBoGridActions(subConfig)"
@@ -249,6 +248,11 @@ export default {
   },
   computed: {
     computedToolbarItems() {
+      // for (const item of this.toolbarItems) {
+      //   if (item.action === ACTION.SUBMIT_PROCESS) {
+      //     item.disabled = !this.id
+      //   }
+      // }
       return this.computeToolbarItems(this.toolbarItems).filter(item => item.hidden !== true)
     },
     taskHistoryQueryParams() {
@@ -317,6 +321,7 @@ export default {
       subBos.push({
         boName: property.subBoName,
         label: subBoInfo.boText,
+        prop: property.prop,
         queryParams: this.buildSubBoGridQueryParams(boInfo, subBoInfo)
       })
     }
@@ -593,7 +598,7 @@ export default {
 
   .small-title {
     max-width: 1200px;
-    padding: 10px 45px 10px 40px;
+    padding: 0 45px 0 40px;
     width: 100%;
 
     span {

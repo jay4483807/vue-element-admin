@@ -21,11 +21,12 @@ import PrGrid from '@/components/pro/PrGrid'
 import { executeConfig, isBlank } from '@/utils/pan'
 import { ACTION } from '@/constants'
 import i18n from 'vue-i18n'
+import grid from './mixins/grid'
 
 export default {
   name: 'PrBoGrid',
   components: { PrGrid },
-  mixins: [boComponent],
+  mixins: [boComponent, grid],
   props: {
     queryParams: {
       type: Object,
@@ -176,9 +177,7 @@ export default {
 
   },
   methods: {
-    async load() {
-      return this.$refs.grid.load()
-    }
+
   }
 }
 </script>

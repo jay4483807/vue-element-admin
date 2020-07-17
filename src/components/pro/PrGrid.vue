@@ -11,6 +11,7 @@
     </el-row>
     <el-table
       v-if="gridColumns.length>0"
+      ref="grid"
       v-loading="listLoading"
       v-bind="$attrs"
       :data="tableRows"
@@ -63,10 +64,12 @@
 <script>
 import Pagination from '@/components/Pagination'
 import { queryList } from '@/api/pan' // Secondary package based on el-pagination
+import grid from './mixins/grid'
 
 export default {
   name: 'PrGrid',
   components: { Pagination },
+  mixins: [grid],
   props: {
     toolbarItems: {
       type: Array,
