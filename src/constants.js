@@ -8,7 +8,8 @@ export const ACTION = {
   SAVE: '_saveOrUpdate',
   CANCEL: '_cancel',
   SUBMIT_PROCESS: '_submitProcess',
-  UPLOAD: '_upload'
+  UPLOAD: '_upload',
+  DOWNLOAD: '_download'
 }
 
 export const UI_TYPE = {

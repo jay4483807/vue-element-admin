@@ -32,7 +32,7 @@
     </el-dialog>
     <el-dialog v-if="isAttachment" title="上传附件" :visible.sync="showUpload" :show-close="true" :append-to-body="true" width="70%">
       <el-upload
-        :ref="isAttachment?'upload':''"
+        ref="upload"
         drag
         :action="uploadUrl"
         multiple
@@ -197,7 +197,9 @@ export default {
           this.deleteRow(row)
         }
       } else if (this.isAttachment && item.action === ACTION.UPLOAD) {
-        this.$refs.upload.clearFiles()
+        if (this.$refs.upload) {
+          this.$refs.upload.clearFiles()
+        }
         this.showUpload = true
       }
     },
@@ -217,6 +219,13 @@ export default {
         this.form = row
         this.formEditable = false
         this.showForm = true
+      } else if (item.action === ACTION.DOWNLOAD) {
+        const a = document.createElement('a')
+        a.download = row.fileName
+        a.href = process.env.VUE_APP_BASE_API + '/attachementController.spr?action=download&attachementId=' + row.attachementId
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
       }
     },
     formConfirm() {

@@ -1,4 +1,4 @@
-import { login, panLogin, logout, getInfo } from '@/api/user'
+import { login, panLogin, logout } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import router, { resetRouter } from '@/router'
 import md5 from 'js-md5'
@@ -73,27 +73,20 @@ const actions = {
     if (res.type !== 'info') {
       throw res
     }
+    const name = res.coustom.personnelinfo.PERSONNELNAME
     commit('SET_USER_ID', res.coustom.personnelinfo.USERID)
     commit('SET_NAME', res.coustom.personnelinfo.PERSONNELNAME)
 
     res = await request({ url: '/vueController.spr?action=getAuthMenu', data: {
       userid: state.userId
     }})
-    const { data } = await getInfo(state.token)
-    if (!data) { throw new Error('Verification failed, please Login again.') }
-    const { roles, name, avatar, introduction } = data
 
-    // roles must be a non-empty array
-    if (!roles || roles.length <= 0) {
-      throw new Error('getInfo: roles must be a non-null array!')
-    }
-
-    commit('SET_ROLES', roles)
     commit('SET_NAME', name)
-    commit('SET_AVATAR', avatar)
-    commit('SET_INTRODUCTION', introduction)
+    commit('SET_ROLES', ['admin'])
+    commit('SET_AVATAR', 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif')
+    commit('SET_INTRODUCTION', '')
     commit('SET_MENUS', res.coustom)
-    return { ...data, menuData: res.coustom }
+    return { roles: ['admin'], avatar: '', name: name, menuData: res.coustom }
   },
 
   // user logout

@@ -87,7 +87,7 @@ import PrSubBoGrid from '@/components/pro/PrSubBoGrid'
 import boComponent from '@/components/pro/mixins/boComponent'
 import { getFormToolbar } from '@/store/action-types'
 import { mapActions } from 'vuex'
-import { executeConfig } from '@/utils/pan'
+import { executeConfig, isBlank } from '@/utils/pan'
 import PrGrid from '@/components/pro/PrGrid'
 
 export default {
@@ -248,11 +248,13 @@ export default {
   },
   computed: {
     computedToolbarItems() {
-      // for (const item of this.toolbarItems) {
-      //   if (item.action === ACTION.SUBMIT_PROCESS) {
-      //     item.disabled = !this.id
-      //   }
-      // }
+      for (const item of this.toolbarItems) {
+        if (item.action === ACTION.SUBMIT_PROCESS) {
+          if (!this.taskId) { // 创建状态或已经提交过的对象不能进行提交
+            item.disabled = !this.id || !isBlank(this.form.processstate)
+          }
+        }
+      }
       return this.computeToolbarItems(this.toolbarItems).filter(item => item.hidden !== true)
     },
     taskHistoryQueryParams() {
@@ -281,13 +283,6 @@ export default {
         loading: false,
         ...item
       }
-      if (item.action === ACTION.CANCEL) {
-        item.btnType = 'info'
-      } else if (item.action === ACTION.SAVE) {
-        if (!this.editable) { // 不可编辑状态隐藏保存按钮
-          item.hidden = true
-        }
-      }
       switch (item.action) {
         case ACTION.CANCEL: {
           item.btnType = 'info'
@@ -295,12 +290,6 @@ export default {
         }
         case ACTION.SAVE: {
           if (!this.editable) { // 不可编辑状态隐藏保存按钮
-            item.hidden = true
-          }
-          break
-        }
-        case ACTION.SUBMIT_PROCESS: {
-          if (!this.taskId) { // 待办任务状态的页面才出现提交按钮
             item.hidden = true
           }
           break
@@ -337,7 +326,6 @@ export default {
     if (this.id) {
       this.fetchData()
     }
-
     // Why need to make a copy of this.$route here?
     // Because if you enter this page and quickly switch tag, may be in the execution of the setTagsViewTitle function, this.$route is no longer pointing to the current page
     // https://github.com/PanJiaChen/vue-element-admin/issues/1221
@@ -470,16 +458,21 @@ export default {
     },
     async submitProcess(item) {
       item.loading = true
+      let data = this.buildSaveData()
+      if (this.taskId) {
+        data = {
+          ...data,
+          upWorkflowExamine: this.taskForm.lastApprovalOpinion,
+          workflowLeaveTransitionName: this.taskForm.nextOperation,
+          workflowExamine: this.taskForm.approvalOpinion,
+          workflowTaskId: this.taskId,
+          workflowCurrentTaskName: this.taskForm.taskName
+        }
+      }
       try {
         await request({
           url: item.url,
-          data: { ...this.buildSaveData(),
-            upWorkflowExamine: this.taskForm.lastApprovalOpinion,
-            workflowLeaveTransitionName: this.taskForm.nextOperation,
-            workflowExamine: this.taskForm.approvalOpinion,
-            workflowTaskId: this.taskId,
-            workflowCurrentTaskName: this.taskForm.taskName
-          }
+          data: data
         })
         this.$message({
           message: '提交成功',
