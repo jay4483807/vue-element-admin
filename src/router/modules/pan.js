@@ -95,7 +95,7 @@ function generateSubRoutes(menuId, menuInfos) {
             component: editImport,
             name: boName + 'Task',
             props: true,
-            meta: { title: '办理待办任务 ' + boText, boName: boName, editable: false },
+            meta: { title: '办理待办任务 ' + boText, boName: boName },
             hidden: true
           }
         ]

@@ -15,7 +15,7 @@
 <script>
 import PrGrid from '@/components/pro/PrGrid'
 import PrSearchBlock from '@/components/pro/PrSearchBlock'
-import { UI_TYPE } from '@/constants'
+import { ACTION, UI_TYPE } from '@/constants'
 import { buildQueryParams } from '@/api/pan'
 import request from '@/utils/request'
 export default {
@@ -133,7 +133,8 @@ export default {
           id: row.businessId
         },
         query: {
-          nodeId: row.nodeId
+          nodeId: row.nodeId,
+          editable: row.methodname === ACTION.EDIT
         }
       })
     }

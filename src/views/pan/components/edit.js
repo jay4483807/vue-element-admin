@@ -3,7 +3,7 @@ export default {
   data() {
     return {
       id: this.$route.params.id || '',
-      editable: this.$route.meta.editable || false,
+      editable: this.$route.query.editable || this.$route.meta.editable || false,
       taskId: this.$route.params.taskId || ''
     }
   },
