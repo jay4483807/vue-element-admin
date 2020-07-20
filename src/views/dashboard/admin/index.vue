@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard-editor-container">
-    <github-corner class="github-corner" />
 
     <panel-group @handleSetLineChartData="handleSetLineChartData" />
 
@@ -9,11 +8,13 @@
     </el-row>
 
     <el-row :gutter="32">
+      <!--
       <el-col :xs="24" :sm="24" :lg="8">
         <div class="chart-wrapper">
           <raddar-chart />
         </div>
       </el-col>
+      -->
       <el-col :xs="24" :sm="24" :lg="8">
         <div class="chart-wrapper">
           <pie-chart />
@@ -24,8 +25,13 @@
           <bar-chart />
         </div>
       </el-col>
+      <el-col :xs="24" :sm="24" :lg="8">
+        <div class="chart-wrapper">
+          <pie-chart2 />
+        </div>
+      </el-col>
     </el-row>
-
+  <!--
     <el-row :gutter="8">
       <el-col :xs="{span: 24}" :sm="{span: 24}" :md="{span: 24}" :lg="{span: 12}" :xl="{span: 12}" style="padding-right:8px;margin-bottom:30px;">
         <transaction-table />
@@ -37,51 +43,53 @@
         <box-card />
       </el-col>
     </el-row>
+    -->
   </div>
 </template>
 
 <script>
-import GithubCorner from '@/components/GithubCorner'
+// import GithubCorner from '@/components/GithubCorner'
 import PanelGroup from './components/PanelGroup'
 import LineChart from './components/LineChart'
-import RaddarChart from './components/RaddarChart'
+// import RaddarChart from './components/RaddarChart'
 import PieChart from './components/PieChart'
+import PieChart2 from './components/PieChart2'
 import BarChart from './components/BarChart'
-import TransactionTable from './components/TransactionTable'
-import TodoList from './components/TodoList'
-import BoxCard from './components/BoxCard'
+// import TransactionTable from './components/TransactionTable'
+// import TodoList from './components/TodoList'
+// import BoxCard from './components/BoxCard'
 
 const lineChartData = {
   newVisitis: {
-    expectedData: [100, 120, 161, 134, 105, 160, 165],
-    actualData: [120, 82, 91, 154, 162, 140, 145]
+    expectedData: [100000, 120000, 161000, 134000, 105000, 160000, 165000],
+    actualData: [120000, 82000, 91000, 154000, 162000, 140000, 145000]
   },
   messages: {
-    expectedData: [200, 192, 120, 144, 160, 130, 140],
-    actualData: [180, 160, 151, 106, 145, 150, 130]
+    expectedData: [200000, 192000, 120000, 144000, 160000, 130000, 140000],
+    actualData: [180000, 160000, 151000, 106000, 145000, 150000, 130000]
   },
   purchases: {
-    expectedData: [80, 100, 121, 104, 105, 90, 100],
-    actualData: [120, 90, 100, 138, 142, 130, 130]
+    expectedData: [80000, 100000, 121000, 104000, 105000, 90000, 100000],
+    actualData: [120000, 90000, 100000, 138000, 142000, 130000, 130000]
   },
   shoppings: {
-    expectedData: [130, 140, 141, 142, 145, 150, 160],
-    actualData: [120, 82, 91, 154, 162, 140, 130]
+    expectedData: [130000, 140000, 141000, 142000, 145000, 150000, 160000],
+    actualData: [120000, 82000, 91000, 154000, 162000, 140000, 130000]
   }
 }
 
 export default {
   name: 'DashboardAdmin',
   components: {
-    GithubCorner,
     PanelGroup,
     LineChart,
-    RaddarChart,
     PieChart,
-    BarChart,
-    TransactionTable,
-    TodoList,
-    BoxCard
+    PieChart2,
+    BarChart
+    // ,
+    // TransactionTable,
+    // TodoList,
+    // BoxCard
   },
   data() {
     return {

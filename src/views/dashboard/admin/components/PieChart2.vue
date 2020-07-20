@@ -52,24 +52,23 @@ export default {
         legend: {
           left: 'center',
           bottom: '10',
-          data: ['锡厚', '拉尖', '少锡', '连锡', '漏印', '偏位', '污染', '划伤']
+          data: ['漏件', '错料', '污染', '划伤', '短路', '假焊', '其他']
         },
         series: [
           {
-            name: 'SPI质量信息',
+            name: 'AOI质量信息',
             type: 'pie',
             roseType: 'radius',
             radius: [15, 95],
             center: ['50%', '38%'],
             data: [
-              { value: 320, name: '锡厚' },
-              { value: 240, name: '拉尖' },
-              { value: 149, name: '少锡' },
-              { value: 100, name: '连锡' },
-              { value: 59, name: '漏印' },
-              { value: 59, name: '偏位' },
-              { value: 59, name: '污染' },
-              { value: 59, name: '划伤' }
+              { value: 620, name: '漏件' },
+              { value: 240, name: '错料' },
+              { value: 149, name: '污染' },
+              { value: 100, name: '划伤' },
+              { value: 59, name: '短路' },
+              { value: 59, name: '假焊' },
+              { value: 59, name: '其他' }
             ],
             animationEasing: 'cubicInOut',
             animationDuration: 2600

@@ -62,7 +62,7 @@ export default {
         },
         xAxis: [{
           type: 'category',
-          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          data: ['线体1SMT', '线体2SMT', '线体3SMT', '线体4SMT'],
           axisTick: {
             alignWithLabel: true
           }
@@ -74,25 +74,39 @@ export default {
           }
         }],
         series: [{
-          name: 'pageA',
+          name: '编程',
           type: 'bar',
           stack: 'vistors',
           barWidth: '60%',
-          data: [79, 52, 200, 334, 390, 330, 220],
+          data: [79, 52, 200, 334],
           animationDuration
         }, {
-          name: 'pageB',
+          name: '贴片',
           type: 'bar',
           stack: 'vistors',
           barWidth: '60%',
-          data: [80, 52, 200, 334, 390, 330, 220],
+          data: [800, 520, 400, 334],
           animationDuration
         }, {
-          name: 'pageC',
+          name: '告警',
           type: 'bar',
           stack: 'vistors',
           barWidth: '60%',
-          data: [30, 52, 200, 334, 390, 330, 220],
+          data: [30, 52, 34, 40],
+          animationDuration
+        }, {
+          name: '缺料',
+          type: 'bar',
+          stack: 'vistors',
+          barWidth: '60%',
+          data: [30, 52, 34, 40],
+          animationDuration
+        }, {
+          name: '待机',
+          type: 'bar',
+          stack: 'vistors',
+          barWidth: '60%',
+          data: [100, 52, 200, 120],
           animationDuration
         }]
       })
