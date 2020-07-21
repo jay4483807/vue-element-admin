@@ -5,6 +5,7 @@
 <script>
 import edit from './components/edit'
 export default {
+  name: 'Edit',
   mixins: [edit]
 }
 </script>

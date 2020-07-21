@@ -34,8 +34,22 @@
         :label="col.label"
         :formatter="col.formatter"
       />
-      <el-table-column v-if="gridActions.length>0" v-slot="{row,$index}" :width="68*gridActions.length+60" align="center" label="操作" fixed="right">
-        <div class="el-button-group">
+      <el-table-column v-if="gridActions.length>0" v-slot="{row,$index}" :width="actionColumnWidth" align="center" label="操作" fixed="right">
+        <el-dropdown v-if="actionType === 'dropdown'" @command="_dropdownGridAction($event,row,$index)">
+          <span class="el-dropdown-link">
+            更多<i class="el-icon-arrow-down el-icon--right" />
+          </span>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item
+              v-for="(act,index) of _computeGridActions(gridActions, row, $index)"
+              :key="index"
+              :command="act.action"
+              :disabled="act.disabled"
+              @click="_gridAction(act, row, $index)"
+            >{{ act.label }}</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+        <div v-else class="el-button-group">
           <el-button
             v-for="(act,index) of _computeGridActions(gridActions, row, $index)"
             :key="index"
@@ -134,6 +148,10 @@ export default {
       default({ actions, row, rowIndex }) {
         return actions
       }
+    },
+    actionType: {
+      type: String,
+      default: 'dropdown'
     }
   },
   data() {
@@ -152,6 +170,11 @@ export default {
   computed: {
     tableRows() {
       return this.showSelectedOnly ? this.selectedRows : this.computeListData(this.list)
+    },
+    actionColumnWidth() {
+      if (this.actionType === 'dropdown') { return 80 } else {
+        return 68 * this.gridActions.length + 60
+      }
     }
   },
   mounted() {
@@ -193,6 +216,17 @@ export default {
         this.listLoading = false
       }
     },
+    clear() {
+      this.list = []
+      this.total = 0
+      this.listLoading = false
+      this.listQuery = {
+        page: 1,
+        limit: 100
+      }
+      this.selectedRows = []
+      this.showSelectedOnly = false
+    },
     getRowKey(row) {
       if (this.rowKeyProp) {
         return row[this.rowKeyProp]
@@ -221,6 +255,9 @@ export default {
       if (item.callback) {
         item.callback.apply(this, [event])
       }
+    },
+    _dropdownGridAction(action, row, rowIndex) {
+      this._gridAction(this.gridActions.find(item => item.action === action) || { action }, row, rowIndex)
     },
     _selectionChange(rows) {
       this.selectedRows = rows

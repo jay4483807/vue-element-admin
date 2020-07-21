@@ -126,6 +126,12 @@ export default {
       this.addRows = []
       this.$refs.grid.load()
     },
+    clear() {
+      this.modifyRows = []
+      this.deleteRows = []
+      this.addRows = []
+      this.$refs.grid.clear()
+    },
     getDeleteRows() {
       return this.deleteRows.filter(r => r).map(r => {
         const row = { ...r }

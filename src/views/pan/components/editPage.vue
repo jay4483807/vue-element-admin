@@ -253,6 +253,8 @@ export default {
           if (!this.taskId) { // 创建状态或已经提交过的对象不能进行提交
             item.disabled = !this.id || !isBlank(this.form.processstate)
           }
+        } else if (item.action === ACTION.SAVE) { // 已提交流程的对象不能进行保存
+          item.disabled = !isBlank(this.form.processstate)
         }
       }
       return this.computeToolbarItems(this.toolbarItems).filter(item => item.hidden !== true)
@@ -421,20 +423,29 @@ export default {
               duration: 2000
             })
             if (!this.id) {
-              // 创建页面保存的话，先更新子对象grid的查询条件
-              this.id = rsp['coustom'][this.idProp]
-              const arr = []
+              // TODO 临时解决创建页保存后数据无法清空的问题
+              this.form = {}
               for (const subConfig of this.subBos) {
                 const subBoGrid = this.getSubBoGrid(subConfig.boName)
                 if (subBoGrid) {
-                  arr.push(this.getBoInfo(subConfig.boName).then(subBoInfo => {
-                    subConfig.queryParams = this.buildSubBoGridQueryParams(this.boInfo, subBoInfo)
-                  }))
+                  subBoGrid.clear()
                 }
               }
-              Promise.all(arr).then(() => {
-                this.fetchData(this.id)
-              })
+              this.close()
+              // 创建页面保存的话，先更新子对象grid的查询条件
+              // this.id = rsp['coustom'][this.idProp]
+              // const arr = []
+              // for (const subConfig of this.subBos) {
+              //   const subBoGrid = this.getSubBoGrid(subConfig.boName)
+              //   if (subBoGrid) {
+              //     arr.push(this.getBoInfo(subConfig.boName).then(subBoInfo => {
+              //       subConfig.queryParams = this.buildSubBoGridQueryParams(this.boInfo, subBoInfo)
+              //     }))
+              //   }
+              // }
+              // Promise.all(arr).then(() => {
+              //   this.fetchData(this.id)
+              // })
             } else {
               this.fetchData(this.id)
             }
