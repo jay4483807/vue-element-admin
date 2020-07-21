@@ -68,7 +68,7 @@ function generateSubRoutes(menuId, menuInfos) {
             meta: { title: menu.NODEDESC, boName: boName }
           }, {
             page: PAGE.CREATE,
-            path: path + '/create',
+            path: path + '/create/:time',
             component: editImport,
             name: boName + 'Create',
             meta: { title: '创建' + boText, boName: boName, editable: true },

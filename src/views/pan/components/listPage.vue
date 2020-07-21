@@ -306,7 +306,7 @@ export default {
       }
       switch (item.action) {
         case ACTION.CREATE:
-          this.$router.push('create')
+          this.$router.push('create/' + Date.now())
           break
         case ACTION.DELETES:
           if (item.url) {

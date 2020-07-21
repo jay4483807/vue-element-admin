@@ -149,7 +149,7 @@ export const constantRoutes = [
       component: () => import('@/views/pan-demo/list-demo'),
       meta: { title: '采购申请管理Demo', boName: 'PurchaseApplyFront' }
     }, {
-      path: 'purchase-apply-front/create',
+      path: 'purchase-apply-front/create/:time',
       name: 'PurchaseApplyFrontCreateDemo',
       component: () => import('@/views/pan-demo/edit-demo'),
       meta: { title: '创建采购申请Demo', boName: 'PurchaseApplyFront', editable: true, noCache: true },

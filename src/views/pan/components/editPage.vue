@@ -423,29 +423,20 @@ export default {
               duration: 2000
             })
             if (!this.id) {
-              // TODO 临时解决创建页保存后数据无法清空的问题
-              this.form = {}
+              // 创建页面保存的话，先更新子对象grid的查询条件
+              this.id = rsp['coustom'][this.idProp]
+              const arr = []
               for (const subConfig of this.subBos) {
                 const subBoGrid = this.getSubBoGrid(subConfig.boName)
                 if (subBoGrid) {
-                  subBoGrid.clear()
+                  arr.push(this.getBoInfo(subConfig.boName).then(subBoInfo => {
+                    subConfig.queryParams = this.buildSubBoGridQueryParams(this.boInfo, subBoInfo)
+                  }))
                 }
               }
-              this.close()
-              // 创建页面保存的话，先更新子对象grid的查询条件
-              // this.id = rsp['coustom'][this.idProp]
-              // const arr = []
-              // for (const subConfig of this.subBos) {
-              //   const subBoGrid = this.getSubBoGrid(subConfig.boName)
-              //   if (subBoGrid) {
-              //     arr.push(this.getBoInfo(subConfig.boName).then(subBoInfo => {
-              //       subConfig.queryParams = this.buildSubBoGridQueryParams(this.boInfo, subBoInfo)
-              //     }))
-              //   }
-              // }
-              // Promise.all(arr).then(() => {
-              //   this.fetchData(this.id)
-              // })
+              Promise.all(arr).then(() => {
+                this.fetchData(this.id)
+              })
             } else {
               this.fetchData(this.id)
             }
