@@ -7,6 +7,9 @@ export default {
     clear() {
       return this._getGrid().clear()
     },
+    clearSelection() {
+      this._getGrid().clearSelection()
+    },
     toggleRowSelection(row, selected) {
       this._getGrid().toggleRowSelection(row, selected)
     },

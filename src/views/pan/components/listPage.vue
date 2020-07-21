@@ -284,6 +284,13 @@ export default {
             request({
               url: action.url,
               data: data
+            }).then(() => {
+              this.$message({
+                type: 'success',
+                message: '操作成功'
+              })
+              this.$refs.grid.toggleRowSelection(row, false)
+              this.load()
             })
           } else {
             console.error('未指定方法[' + action + ']的url，无法自动完成删除动作', action)
@@ -315,6 +322,8 @@ export default {
                 type: 'success',
                 message: '操作成功'
               })
+              this.$refs.grid.clearSelection()
+              this.load()
             })
           } else {
             console.error('未指定方法[' + item.action + ']的url，无法自动完成删除动作', item)
