@@ -161,7 +161,7 @@ export default {
       listLoading: false,
       listQuery: {
         page: 1,
-        limit: 100
+        limit: 10
       },
       selectedRows: [],
       showSelectedOnly: false
@@ -222,7 +222,7 @@ export default {
       this.listLoading = false
       this.listQuery = {
         page: 1,
-        limit: 100
+        limit: 10
       }
       this.selectedRows = []
       this.showSelectedOnly = false
