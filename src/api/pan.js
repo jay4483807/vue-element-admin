@@ -11,7 +11,8 @@ const uiTypeMapping = {
   '01': UI_TYPE.TEXT,
   '11': UI_TYPE.SEARCH_HELP,
   '06': UI_TYPE.SELECT,
-  '12': UI_TYPE.TEXT_AREA
+  '12': UI_TYPE.TEXT_AREA,
+  '14': UI_TYPE.SYS_USER
 }
 
 const boInfos = new Map()
@@ -174,12 +175,13 @@ export async function getBoProperties(boName) {
 
 export async function getGridColumns(boName) {
   return getOrFetch(gridMeta, boName, async boName => {
-    const { boId } = await getBoInfo(boName)
+    const { boId, props } = await getBoInfo(boName)
     const { data } = await boQueryGrid('BizGridColumn', "%20YGRIDCOLUMN.BOID='" + boId + "'", 'COLUMNNO')
     return data.filter(col => {
       return true
     }).map((col) => {
       return {
+        ...props[col.proname] || {},
         // 对应属性名
         prop: col.proname,
         // 列名
@@ -439,9 +441,25 @@ export async function buildGridConfig(boName, option = {}) {
   if (!config.idProp) {
     console.error('未找到业务对象[' + boName + ']的id属性')
   }
-  let columns = (await getGridColumns(boName)).map(col => {
+  let columns = (await getGridColumns(boName)).flatMap(col => {
     // 复制一份配置，避免多处配置发生冲突
-    return { ...col }
+    const column = {
+      ...col
+    }
+    if (column.uiType === UI_TYPE.SEARCH_HELP) {
+      // 搜索帮助，自动补一个搜索帮助名称列
+      return [column, {
+        ...column,
+        prop: column.prop + '_text',
+        label: column.label + '名称',
+        visibility: true,
+        action: undefined,
+        isCondition: false,
+        uiType: UI_TYPE.TEXT
+      }]
+    } else {
+      return [column]
+    }
   })
   columns = executeConfig(option.preConfigColumns, option, columns)
   config.gridColumns = columns.filter(col => {

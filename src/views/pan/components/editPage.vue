@@ -52,7 +52,9 @@
     />
     <el-tabs v-model="activeTag" class="tabs-container">
       <el-tab-pane v-for="(subConfig,index) of subBos" :key="index" :label="subConfig.label" :name="'tag_'+index">
+        <slot v-if="subConfig.slot" name="subBo" :subConfig="subConfig" :index="index" />
         <pr-sub-bo-grid
+          v-else
           :ref="'grid_'+subConfig.boName"
           class="tab-main-container"
           toolbar-class="el-button-group"
@@ -163,6 +165,12 @@ export default {
       type: Function,
       default(items) {
         return items
+      }
+    },
+    configSubBos: {
+      type: [Function, Array],
+      default(subBos) {
+        return subBos
       }
     },
     configSubBoToolbarItems: {
@@ -316,7 +324,7 @@ export default {
         queryParams: this.buildSubBoGridQueryParams(boInfo, subBoInfo)
       })
     }
-    this.subBos = subBos
+    this.subBos = executeConfig(this.configSubBos, this, subBos)
     if (subBos.length > 0) {
       this.activeTag = 'tag_0'
     }
@@ -592,7 +600,6 @@ export default {
   @import "~@/styles/mixin.scss";
 
   .small-title {
-    max-width: 1200px;
     padding: 0 45px 0 40px;
     width: 100%;
 

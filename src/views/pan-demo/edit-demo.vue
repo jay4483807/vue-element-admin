@@ -1,5 +1,11 @@
 <template>
-  <edit-page ref="page" v-bind="bindProps" />
+  <edit-page ref="page" v-bind="bindProps">
+    <template #subBo="{subConfig,index}">
+      <div style="height: 600px">
+        子对象自定义区域：{{ subConfig.label }}
+      </div>
+    </template>
+  </edit-page>
 </template>
 
 <script>
@@ -85,13 +91,18 @@ export default {
         ...YES_NO_ITEM
       }, {
         prop: 'issappr',
-        ...YES_NO_ITEM
+        ...YES_NO_ITEM,
+        rowNo: 2,
+        colNo: 1
       }, {
         prop: 'printnum',
         editable: false
       }, {
         prop: 'memo',
-        label: '原因/用途'
+        label: '原因/用途',
+        rowNo: 2,
+        colNo: 2,
+        span: 16 // 手动指定宽度，UI_TYPE.TEXT_AREA是24外，其他表单项宽度默认都是8，同一行上的表单项会根据各自的span值均分总宽度
       }])
       if (!this.page().id) { // 创建页特殊处理
         items = items.filter(item => !['isprint', 'printnum'].includes(item.prop))
@@ -231,6 +242,22 @@ export default {
         }
       }
       return form
+    },
+    // 配置子对象
+    configSubBos(subBos) {
+      console.log('读取默认子对象配置：', subBos)
+      subBos.push({ // 增加一个扩展的子对象
+        boName: 'Attachement',
+        label: '附件2',
+        prop: 'attachement2',
+        queryParams: {
+          defaultCondition: ` YATTACHEMENT.BUSINESSID='${this.id}'`
+        }
+      }, { // 增加一个完全自定义的tab页，可通过edit-page的subBo插槽编写内容
+        slot: true,
+        label: '自定义区域'
+      })
+      return subBos
     }
   }
 }

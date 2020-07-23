@@ -16,6 +16,7 @@ export default {
       configSubBoFormItems: this.configSubBoFormItems,
       computeSubBoFormItems: this.computeSubBoFormItems,
       computeSubBoFormData: this.computeSubBoFormData,
+      configSubBos: this.configSubBos,
       id: this.id,
       editable: this.editable,
       taskId: this.taskId,
@@ -53,6 +54,9 @@ export default {
     },
     computeSubToolbarItems() {
       // TODO
+    },
+    configSubBos(subBos) {
+      return subBos
     }
   }
 }

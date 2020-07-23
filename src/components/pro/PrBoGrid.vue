@@ -15,11 +15,11 @@
 </template>
 
 <script>
-import { buildFormItemConfig, getBoMethods, getGridColumns, getToolbarItems } from '@/api/pan'
+import { buildFormItemConfig, getBoMethods, getDict, getGridColumns, getToolbarItems } from '@/api/pan'
 import boComponent from '@/components/pro/mixins/boComponent'
 import PrGrid from '@/components/pro/PrGrid'
 import { executeConfig, isBlank } from '@/utils/pan'
-import { ACTION } from '@/constants'
+import { ACTION, UI_TYPE } from '@/constants'
 import i18n from 'vue-i18n'
 import grid from './mixins/grid'
 
@@ -96,7 +96,8 @@ export default {
     return {
       gridColumns: [],
       gridActions: [],
-      toolbarItems: []
+      toolbarItems: [],
+      dicts: {}
     }
   },
   computed: {
@@ -118,9 +119,25 @@ export default {
     if (!this.idProp) {
       console.error('未找到业务对象[' + this.boName + ']的id属性')
     }
-    const columns = (await getGridColumns(this.boName)).map(col => {
+    const columns = (await getGridColumns(this.boName)).flatMap(col => {
       // 复制一份配置，避免多处配置发生冲突
-      return { ...col }
+      const column = {
+        ...col
+      }
+      if (column.uiType === UI_TYPE.SEARCH_HELP) {
+        // 搜索帮助，自动补一个搜索帮助名称列
+        return [column, {
+          ...column,
+          prop: column.prop + '_text',
+          label: column.label + '名称',
+          visibility: true,
+          action: undefined,
+          isCondition: false,
+          uiType: UI_TYPE.TEXT
+        }]
+      } else {
+        return [column]
+      }
     })
     config.gridColumns = columns.filter(col => {
       return col.visibility && !col.action
@@ -129,6 +146,17 @@ export default {
       return col
     })
     config.gridColumns = executeConfig(this.configGridColumns, this, config.gridColumns)
+    for (const column of config.gridColumns) {
+      if (column.uiType === UI_TYPE.SELECT && !column.formatter) {
+        // 自动添加字典表的formatter
+        const options = await getDict(column.dictName)
+        column.formatter = (row, column, cellValue, index) => {
+          if (options) {
+            return options.find(opt => opt.value === cellValue) || cellValue
+          }
+        }
+      }
+    }
     config.gridActions = columns.filter(col => {
       return col.visibility && col.action
     }).map(col => {

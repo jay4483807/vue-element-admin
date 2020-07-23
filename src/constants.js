@@ -20,7 +20,8 @@ export const UI_TYPE = {
   DATE_TIME: '_dateTime',
   DATE_TIME_RANGE: '_dateTimeRange',
   SELECT: '_select',
-  SEARCH_HELP: '_searchHelp'
+  SEARCH_HELP: '_searchHelp',
+  SYS_USER: '_sysUser'
 }
 
 export const FORMAT = {

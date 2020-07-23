@@ -109,8 +109,7 @@ export default {
         label: '单据状态',
         $index: 0 // 明确指定在数组中的位置，mergeConfig会根据此值调整位置
       }])
-      // 过滤掉指定的列
-      return columns.filter(col => col.prop !== 'status')
+      return columns
     },
     // 配置grid操作
     configGridActions(actions) {
