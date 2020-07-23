@@ -114,10 +114,10 @@ export default {
     // 配置grid操作
     configGridActions(actions) {
       mergeConfig(actions, {
-        action: '_viewProcessState',
+        action: '_changeApply',
         // 操按钮点击回调处理
         callback: ({ item, row, rowIndex }) => {
-          alert('打开流程图:' + item.url + '&perlocatcardid=' + row.perlocatcardid)
+          alert('点击变更，对象id:' + row[this.$refs.page.idProp])
         }
       }, 'action')
       console.log('配置Grid操作:', actions)

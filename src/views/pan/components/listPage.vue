@@ -297,6 +297,10 @@ export default {
           }
           break
         }
+        case ACTION.VIEW_PROCESS_STATE: {
+          this.$router.push(`flow-chart/${row[this.idProp]}`)
+          break
+        }
       }
     },
     _toolbarItemClick({ item }) {

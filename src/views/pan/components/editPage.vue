@@ -1,6 +1,6 @@
 <template>
   <div>
-    <sticky :z-index="10" class-name="sub-navbar draft" :sticky-top="84">
+    <sticky :z-index="10" :height="50" class-name="sub-navbar draft" :sticky-top="84">
       <el-button
         v-for="(item,index) of computedToolbarItems"
         :key="index"
@@ -10,70 +10,67 @@
         @click="_toolbarItemClick(item)"
       >{{ item.label }}</el-button>
     </sticky>
-    <div v-if="taskId">
-      <div class="small-title">
-        <span>流程审批信息</span>
-        <el-button type="text" @click="showTaskHistory=true">审批历史</el-button>
-        <el-divider />
+    <div class="app-container">
+      <div v-if="taskId">
+        <small-title title="流程审批信息">
+          <el-button type="text" @click="showTaskHistory=true">审批历史</el-button>
+        </small-title>
+        <el-form label-width="140px" label-position="right" :inline="false" class="form-container">
+          <el-row type="flex">
+            <el-col><el-form-item label="当前状态"><el-input v-model="taskForm.taskName" :disabled="true" /></el-form-item></el-col>
+            <el-col><el-form-item label="上一节点审批意见"><el-input v-model="taskForm.lastApprovalOpinion" :disabled="true" /></el-form-item></el-col>
+            <el-col><el-form-item label="当前办理人"><el-input v-model="taskForm.currentActorName" :disabled="true" /></el-form-item></el-col>
+          </el-row>
+          <el-row type="flex">
+            <el-col><el-form-item label="下一步操作"><el-select v-model="taskForm.nextOperation">
+              <el-option v-for="(opt,index) of taskNextOption" :key="index" :value="opt.value">{{ opt.text }}</el-option>
+            </el-select></el-form-item></el-col>
+            <el-col><el-form-item label="审批意见"><el-input v-model="taskForm.approvalOpinion" /></el-form-item></el-col>
+            <el-col><el-form-item label="处理时间"><el-input v-model="taskForm.currentTime" :disabled="true" /></el-form-item></el-col>
+          </el-row>
+        </el-form>
+        <el-drawer title="审批历史" :visible.sync="showTaskHistory" direction="btt" :modal-append-to-body="false" size="">
+          <div style="margin-bottom: 20px">
+            <pr-task-history-grid :id="id" :height="300" />
+          </div>
+        </el-drawer>
       </div>
-      <el-form label-width="140px" label-position="right" :inline="false" class="form-container">
-        <el-row type="flex">
-          <el-col><el-form-item label="当前状态"><el-input v-model="taskForm.taskName" :disabled="true" /></el-form-item></el-col>
-          <el-col><el-form-item label="上一节点审批意见"><el-input v-model="taskForm.lastApprovalOpinion" :disabled="true" /></el-form-item></el-col>
-          <el-col><el-form-item label="当前办理人"><el-input v-model="taskForm.currentActorName" :disabled="true" /></el-form-item></el-col>
-        </el-row>
-        <el-row type="flex">
-          <el-col><el-form-item label="下一步操作"><el-select v-model="taskForm.nextOperation">
-            <el-option v-for="(opt,index) of taskNextOption" :key="index" :value="opt.value">{{ opt.text }}</el-option>
-          </el-select></el-form-item></el-col>
-          <el-col><el-form-item label="审批意见"><el-input v-model="taskForm.approvalOpinion" /></el-form-item></el-col>
-          <el-col><el-form-item label="处理时间"><el-input v-model="taskForm.currentTime" :disabled="true" /></el-form-item></el-col>
-        </el-row>
-      </el-form>
-      <el-drawer title="审批历史" :visible.sync="showTaskHistory" direction="btt" :modal-append-to-body="false" size="">
-        <div style="margin-bottom: 20px">
-          <pr-grid :grid-columns="taskHistoryColumns" :query-params="taskHistoryQueryParams" :height="300" :selectable="false" :pageable="false" />
-        </div>
-      </el-drawer>
+      <small-title :title="boInfo.boText+'信息'" />
+      <pr-bo-form
+        ref="form"
+        :model="form"
+        :editable="editable"
+        :bo-name="boName"
+        :config-form-items="configFormItems"
+        :compute-form-items="computeFormItems"
+        :compute-form-data="computeFormData"
+        @update="formUpdate"
+      />
+      <el-tabs v-model="activeTag" class="tabs-container">
+        <el-tab-pane v-for="(subConfig,index) of subBos" :key="index" :label="subConfig.label" :name="'tag_'+index">
+          <slot v-if="subConfig.slot" name="subBo" :subConfig="subConfig" :index="index" />
+          <pr-sub-bo-grid
+            v-else
+            :ref="'grid_'+subConfig.boName"
+            class="tab-main-container"
+            toolbar-class="el-button-group"
+            :bo-name="subConfig.boName"
+            :query-params="subConfig.queryParams"
+            :parent-bo-name="boName"
+            :parent-bo-id="id"
+            :prop="subConfig.prop"
+            :auto-load="!!id"
+            :selectable="editable"
+            :config-grid-actions="configSubBoGridActions(subConfig)"
+            :config-toolbar-items="_configSubBoToolbarItems(subConfig)"
+            :config-form-items="_configSubBoFormItems(subConfig)"
+            :compute-form-items="_computeSubBoFormItems(subConfig)"
+            :compute-form-data="_computeFormData(subConfig)"
+            @selection-change="_subBoSelectionChange(subConfig, $event)"
+          />
+        </el-tab-pane>
+      </el-tabs>
     </div>
-    <div class="small-title">
-      <span>{{ boInfo.boText }}信息</span>
-      <el-divider />
-    </div>
-    <pr-bo-form
-      ref="form"
-      :model="form"
-      :editable="editable"
-      :bo-name="boName"
-      :config-form-items="configFormItems"
-      :compute-form-items="computeFormItems"
-      :compute-form-data="computeFormData"
-      @update="formUpdate"
-    />
-    <el-tabs v-model="activeTag" class="tabs-container">
-      <el-tab-pane v-for="(subConfig,index) of subBos" :key="index" :label="subConfig.label" :name="'tag_'+index">
-        <slot v-if="subConfig.slot" name="subBo" :subConfig="subConfig" :index="index" />
-        <pr-sub-bo-grid
-          v-else
-          :ref="'grid_'+subConfig.boName"
-          class="tab-main-container"
-          toolbar-class="el-button-group"
-          :bo-name="subConfig.boName"
-          :query-params="subConfig.queryParams"
-          :parent-bo-name="boName"
-          :parent-bo-id="id"
-          :prop="subConfig.prop"
-          :auto-load="!!id"
-          :selectable="editable"
-          :config-grid-actions="configSubBoGridActions(subConfig)"
-          :config-toolbar-items="_configSubBoToolbarItems(subConfig)"
-          :config-form-items="_configSubBoFormItems(subConfig)"
-          :compute-form-items="_computeSubBoFormItems(subConfig)"
-          :compute-form-data="_computeFormData(subConfig)"
-          @selection-change="_subBoSelectionChange(subConfig, $event)"
-        />
-      </el-tab-pane>
-    </el-tabs>
   </div>
 </template>
 
@@ -90,11 +87,12 @@ import boComponent from '@/components/pro/mixins/boComponent'
 import { getFormToolbar } from '@/store/action-types'
 import { mapActions } from 'vuex'
 import { executeConfig, isBlank } from '@/utils/pan'
-import PrGrid from '@/components/pro/PrGrid'
+import PrTaskHistoryGrid from '@/components/pro/PrTaskHistoryGrid'
+import SmallTitle from '@/components/pro/SmallTitle'
 
 export default {
   name: 'EditPage',
-  components: { PrGrid, PrSubBoGrid, PrBoForm, Sticky },
+  components: { SmallTitle, PrTaskHistoryGrid, PrSubBoGrid, PrBoForm, Sticky },
   mixins: [boComponent],
   props: {
     /**
@@ -223,35 +221,7 @@ export default {
         approvalOpinion: ''
       },
       // 下一步操作选项
-      taskNextOption: [],
-      taskHistoryColumns: [{
-        prop: 'TASKNAME',
-        label: '任务名称'
-      }, {
-        prop: 'EXAMINERESULT',
-        label: '执行动作'
-      }, {
-        prop: 'EXAMINE',
-        label: '审批意见'
-      }, {
-        prop: 'EXAMINEPERSON',
-        label: '审批人'
-      }, {
-        prop: 'NODEACTOR',
-        label: '待审批人'
-      }, {
-        prop: 'TASKCREATETIME',
-        label: '开始时间'
-      }, {
-        prop: 'WITHTIME',
-        label: '审批用时'
-      }, {
-        prop: 'REFERENCETIME',
-        label: '参考审批时间'
-      }, {
-        prop: 'CONTRASTTIME',
-        label: '参考与用时时间差'
-      }]
+      taskNextOption: []
     }
   },
   computed: {
@@ -266,14 +236,6 @@ export default {
         }
       }
       return this.computeToolbarItems(this.toolbarItems).filter(item => item.hidden !== true)
-    },
-    taskHistoryQueryParams() {
-      return {
-        defaultCondition: ` (BUSINESSID='${this.id}' or PARENTBUSINESSID='${this.id}') `,
-        orderSql: ' TASKCREATETIME DESC',
-        handlerClass: 'com.panform.pan.businessprocess.engine.web.TaskHistoryGrid',
-        tableName: 'V_WF_TASKINS'
-      }
     }
   },
   async created() {
@@ -599,36 +561,23 @@ export default {
 <style lang="scss" scoped>
   @import "~@/styles/mixin.scss";
 
-  .small-title {
-    padding: 0 45px 0 40px;
-    width: 100%;
-
-    span {
-      padding: 0 20px;
-      height: 40px;
-      line-height: 40px;
-      display: inline-block;
-      font-size: 14px;
-      font-weight: 500;
-      color: #303133;
-      position: relative;
-    }
-
-    .el-button {
-      float: right;
-      margin-right: 20px;
-    }
-
-    /deep/ .el-divider--horizontal {
-      margin: 0
-    }
-  }
-
   .tabs-container {
-    padding: 0px 45px 20px 50px;
+    padding: 0 10px 20px 10px;
   }
 
   .el-button-group{
     margin-bottom: 10px;
+  }
+
+  .sticky {
+    background: #d0d0d0;
+    line-height: 50px;
+    height: 50px;
+    width: 100%;
+    text-align: right;
+    position: fixed;
+    top: 84px;
+    z-index: 10;
+    padding-right: 20px;
   }
 </style>

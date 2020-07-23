@@ -9,7 +9,8 @@ export const ACTION = {
   CANCEL: '_cancel',
   SUBMIT_PROCESS: '_submitProcess',
   UPLOAD: '_upload',
-  DOWNLOAD: '_download'
+  DOWNLOAD: '_download',
+  VIEW_PROCESS_STATE: '_viewProcessState'
 }
 
 export const UI_TYPE = {

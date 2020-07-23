@@ -9,7 +9,9 @@ const PAGE = {
   EDIT: 'edit',
   VIEW: 'view',
   // 待办任务处理页面
-  TASK: 'task'
+  TASK: 'task',
+  // 查看流程图页面
+  FLOW_CHART: 'flowChart'
 }
 
 export function generateRoutesByMenusData(menusData) {
@@ -96,6 +98,14 @@ function generateSubRoutes(menuId, menuInfos) {
             name: boName + 'Task',
             props: true,
             meta: { title: '办理待办任务 ' + boText, boName: boName },
+            hidden: true
+          }, {
+            page: PAGE.FLOW_CHART,
+            path: path + '/flow-chart/:id',
+            component: () => import('@/views/pan/flow-chart'),
+            name: boName + 'FlowChart',
+            props: true,
+            meta: { title: '查看流程图', boName: boName },
             hidden: true
           }
         ]

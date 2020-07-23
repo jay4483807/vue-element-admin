@@ -172,6 +172,13 @@ export const constantRoutes = [
       component: () => import('@/views/pan-demo/edit-demo'),
       meta: { title: '查看采购申请Demo', boName: 'PurchaseApplyFront', editable: false, noCache: true },
       hidden: true
+    }, {
+      path: 'purchase-apply-front/flow-chart/:id',
+      component: () => import('@/views/pan/flow-chart'),
+      name: 'PurchaseApplyFrontFlowChartDemo',
+      props: true,
+      meta: { title: '查看流程图', boName: 'PurchaseApplyFront' },
+      hidden: true
     }]
   }
 ]
