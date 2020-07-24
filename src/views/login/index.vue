@@ -255,7 +255,7 @@ export default {
     background: url(../images/login/bg_login_bg.jpg) center center no-repeat;
 
     .login-form {
-      height: 425px;
+      height: 380px;
       position: relative;
       width: 420px;
       max-width: 100%;
