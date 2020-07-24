@@ -3,7 +3,7 @@
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" autocomplete="on" label-position="left">
 
       <div class="title-container">
-        <h3 class="title">SMT生产管理系统<br>用户登录
+        <h3 class="title">SMT生产管理系统
         </h3>
         <lang-select class="set-language" />
       </div>
@@ -289,11 +289,15 @@ export default {
       position: relative;
 
       .title {
-        font-size: 26px;
-        color: $light_gray;
-        margin: 0px auto 40px auto;
+        width: 100%;
+        line-height: 30px;
+        font-size: 24px;
         text-align: center;
-        font-weight: bold;
+        margin: 0 auto;
+        font-family: "microsoft yahei";
+        font-weight: 400;
+        padding-bottom: 28px;
+        color: #6f6f6f;
       }
 
       .set-language {
