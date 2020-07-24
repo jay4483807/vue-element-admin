@@ -247,11 +247,15 @@ export default {
     configSubBos(subBos) {
       console.log('读取默认子对象配置：', subBos)
       subBos.push({ // 增加一个扩展的子对象
-        boName: 'Attachement',
-        label: '附件2',
-        prop: 'attachement2',
-        queryParams: {
-          defaultCondition: ` YATTACHEMENT.BUSINESSID='${this.id}'`
+        boName: 'PurchaseAppItemFro',
+        label: '项目预览（可编辑）',
+        prop: 'purchaseAppItemFro2',
+        gridEditable: true,
+        queryParams: () => { // grid查询参数可以是个回调函数，每次查询前都会调用回调获取最新的查询参数
+          console.log('触发查询参数回调，获取当前form表单数据：', this.page().getForm())
+          return {
+            defaultCondition: ` YPURCHASEAPPITEM.PURCHASEAPPLYID='${this.id}'`
+          }
         }
       }, { // 增加一个完全自定义的tab页，可通过edit-page的subBo插槽编写内容
         slot: true,

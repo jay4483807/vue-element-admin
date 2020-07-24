@@ -3,7 +3,7 @@
     ref="grid"
     v-bind="$attrs"
     :row-key-prop="idProp"
-    :query-params="mergedQueryParams"
+    :query-params="_queryParams"
     :grid-actions="gridActions"
     :grid-columns="gridColumns"
     :compute-grid-actions="computeGridActions"
@@ -18,7 +18,7 @@
 import { buildFormItemConfig, getBoMethods, getDict, getGridColumns, getToolbarItems } from '@/api/pan'
 import boComponent from '@/components/pro/mixins/boComponent'
 import PrGrid from '@/components/pro/PrGrid'
-import { executeConfig, isBlank } from '@/utils/pan'
+import { callValue, executeConfig, isBlank } from '@/utils/pan'
 import { ACTION, UI_TYPE } from '@/constants'
 import i18n from 'vue-i18n'
 import grid from './mixins/grid'
@@ -29,7 +29,7 @@ export default {
   mixins: [boComponent, grid],
   props: {
     queryParams: {
-      type: Object,
+      type: [Object, Function],
       default() {
         return {}
       }
@@ -106,9 +106,6 @@ export default {
     },
     computedGridActions() {
       return this.computeGridActions(this.gridActions)
-    },
-    mergedQueryParams() {
-      return { boName: this.boName, ...this.queryParams }
     }
   },
   async created() {
@@ -205,7 +202,9 @@ export default {
 
   },
   methods: {
-
+    _queryParams() {
+      return { boName: this.boName, ...callValue(this.queryParams) }
+    }
   }
 }
 </script>

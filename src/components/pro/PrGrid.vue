@@ -33,7 +33,14 @@
         align="center"
         :label="col.label"
         :formatter="col.formatter"
-      />
+      >
+        <template v-if="editable && col.editable !== false" #default="{row,$index}">
+          <el-input v-model="row[col.prop]" @change="_rowChanged(row, $index, col.prop)" />
+        </template>
+      </el-table-column>
+      <el-table-column v-if="showTags" v-slot="{row,$index}" :width="tagsColumnWidth" align="right" fixed="right">
+        <el-tag v-for="(tag,index) of computeRowTags(row,$index)" :key="index" :type="tag.type || 'danger'" size="mini">{{ tag.label }}</el-tag>
+      </el-table-column>
       <el-table-column v-if="gridActions.length>0" v-slot="{row,$index}" :width="actionColumnWidth" align="center" label="操作" fixed="right">
         <el-dropdown v-if="actionType === 'dropdown'" @command="_dropdownGridAction($event,row,$index)">
           <span class="el-dropdown-link">
@@ -79,6 +86,7 @@
 import Pagination from '@/components/Pagination'
 import { queryList } from '@/api/pan' // Secondary package based on el-pagination
 import grid from './mixins/grid'
+import { callValue } from '@/utils/pan'
 
 export default {
   name: 'PrGrid',
@@ -103,6 +111,15 @@ export default {
         return []
       }
     },
+    // 是否显示标签列
+    showTags: {
+      type: Boolean,
+      default: false
+    },
+    tagsColumnWidth: {
+      type: Number,
+      default: 60
+    },
     selectable: {
       type: Boolean,
       default: true
@@ -111,8 +128,13 @@ export default {
       type: Boolean,
       default: true
     },
+    editable: {
+      type: Boolean,
+      default: false
+    },
+    // grid查询参数,可以是一个参数对象或是一个回调函数，每次查询前都会调用回调获取最新的查询参数
     queryParams: {
-      type: Object,
+      type: [Object, Function],
       default() {
         return {}
       }
@@ -147,6 +169,12 @@ export default {
       type: Function,
       default({ actions, row, rowIndex }) {
         return actions
+      }
+    },
+    computeRowTags: {
+      type: Function,
+      default({ row, rowIndex }) {
+        return []
       }
     },
     actionType: {
@@ -199,7 +227,7 @@ export default {
         }, 1000)
         const params = {
           ...(this.listQuery || {}),
-          ...(this.queryParams || {})
+          ...callValue(this.queryParams, {})
         }
         const response = await queryList(params)
         // eslint-disable-next-line prefer-const
@@ -265,6 +293,9 @@ export default {
     },
     _computeGridActions(actions, row, rowIndex) {
       return this.computeGridActions({ actions, row, rowIndex })
+    },
+    _rowChanged(row, rowIndex, prop) {
+      this.$emit('row-change', { row, rowIndex, prop })
     }
   }
 }

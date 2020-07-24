@@ -4,15 +4,18 @@
       ref="grid"
       :bo-name="boName"
       v-bind="$attrs"
-      :row-class-name="rowClassName"
       :cell-class-name="cellClassName"
       :compute-grid-actions="computeGridActions"
       :compute-list-data="computeListData"
+      :config-toolbar-items="_configToolbarItems"
       :height="400"
+      :show-tags="true"
+      :compute-row-tags="computeRowTags"
       v-on="$listeners"
       @toolbarClick="toolbarClick"
       @rowBtnClick="rowBtnClick"
       @selection-change="selectionChange"
+      @row-change="_rowChange"
     />
     <el-dialog :title="formTitle" :visible.sync="showForm" :show-close="true" :append-to-body="true" width="70%">
       <pr-bo-form
@@ -57,10 +60,11 @@ import boComponent from '@/components/pro/mixins/boComponent'
 import grid from './mixins/grid'
 
 import { ACTION } from '@/constants'
-import { isBlank } from '@/utils/pan'
+import { executeConfig, isBlank } from '@/utils/pan'
 import request from '@/utils/request'
 const ADD = '__add'
 const RECOVER = '_recover' // 恢复
+const ADD_LINE = '_addLine' // 添加行
 const ORIGINAL_DATA = '__originalData'
 export default {
   name: 'PrSubBoGrid',
@@ -77,6 +81,15 @@ export default {
     }, parentBoId: {
       type: String,
       default: ''
+    },
+    /**
+     * 配置工具栏
+     */
+    configToolbarItems: {
+      type: [Function, Array],
+      default(items) {
+        return items
+      }
     },
     configFormItems: {
       type: Function,
@@ -149,17 +162,10 @@ export default {
     getAddRows() {
       return this.addRows.filter(r => r)
     },
-    rowClassName({ row, rowIndex }) {
-      if (!isBlank(row[ADD])) {
-        return 'new-row'
-      } else if (this.findRow(row, this.deleteRows) >= 0) {
-        return 'delete-row'
-      }
-    },
     cellClassName({ row, column, rowIndex, columnIndex }) {
       const originalData = row[ORIGINAL_DATA]
       const prop = column.property
-      if (!isBlank(row[ADD]) || prop && originalData && originalData[prop] !== row[prop]) {
+      if (isBlank(row[ADD]) && prop && originalData && originalData[prop] !== row[prop]) {
         return 'update-cell'
       }
     },
@@ -238,21 +244,7 @@ export default {
       this.$refs.form.validate(valid => {
         if (valid) {
           const row = this.$refs.form.getForm()
-          if (row[ADD] === true) {
-            // 没有在addRows数组中的情况
-            row[ADD] = this.addRows.length
-            this.addRows.push(row)
-          } else if (typeof row[ADD] === 'number') {
-            // 已在addRows数组中
-            this.addRows.splice(row[ADD], 1, row)
-          } else {
-            const index = this.findRow(row, this.modifyRows)
-            if (index >= 0) {
-              this.modifyRows.splice(index, 1, row)
-            } else {
-              this.modifyRows.push(row)
-            }
-          }
+          this.processRowChange(row)
           this.showForm = false
         } else {
           this.$message({
@@ -265,22 +257,53 @@ export default {
     selectionChange(rows) {
       this.selectedRows = rows
     },
+    _rowChange({ row, rowIndex, prop }) {
+      this.processRowChange(row)
+    },
+    processRowChange(row) {
+      if (row[ADD] === true) {
+        // 没有在addRows数组中的情况
+        row[ADD] = this.addRows.length
+        this.addRows.push(row)
+      } else if (typeof row[ADD] === 'number') {
+        // 已在addRows数组中
+        this.addRows.splice(row[ADD], 1, row)
+      } else {
+        const index = this.findRow(row, this.modifyRows)
+        if (index >= 0) {
+          this.modifyRows.splice(index, 1, row)
+        } else {
+          this.modifyRows.push(row)
+        }
+      }
+    },
     findRow(row, rowArr) {
       return rowArr.findIndex((r) => r[this.idProp] === row[this.idProp])
     },
+    _configToolbarItems(items) {
+      if (this.$attrs.editable) {
+        items = [{
+          action: ADD_LINE,
+          label: '添加行',
+          callback: () => {
+            this.processRowChange({
+              [ADD]: true
+            })
+          }
+        },
+        ...items]
+      }
+      return executeConfig(this.configToolbarItems, this, items)
+    },
     computeGridActions({ actions, row, rowIndex }) {
       if (this.findRow(row, this.deleteRows) >= 0) {
-        return actions.map((item) => {
-          if (item.action === ACTION.DELETE) {
-            item = {
-              ...item,
-              action: RECOVER,
-              label: '恢复',
-              btnType: 'success'
-            }
-          }
-          return item
+        actions = actions.filter(item => item.action !== ACTION.DELETE)
+        actions.push({
+          action: RECOVER,
+          label: '恢复',
+          btnType: 'success'
         })
+        return actions
       }
       return actions
     },
@@ -303,7 +326,6 @@ export default {
       return list
     },
     beforeUpload(file) {
-      console.log('>>>>>>>>>>>>>beforeUpload', file)
       return new Promise((resolve) => {
         this.uploadData = {
           boName: this.parentBoName,
@@ -322,35 +344,63 @@ export default {
       })
     },
     onPreview(file) {
-      console.log('>>>>>>>>>onPreview', file)
     },
     onChange(file, fileList) {
-      console.log('>>>>>>>>>onChange', file, fileList)
     },
     onUploadSuccess(response, file, fileList) {
-      console.log('>>>>>>>>>onUploadSuccess', response, file, fileList)
       const rows = response.attachement
       for (const row of rows) { // 上传成功后添加到add列表
         row[ADD] = this.addRows.length
         this.addRows.push(row)
       }
+    },
+    computeRowTags(row) {
+      if (!isBlank(row[ADD])) {
+        return [{
+          type: 'success',
+          label: '新增'
+        }]
+      }
+      if (this.findRow(row, this.deleteRows) >= 0) {
+        return [{
+          type: 'danger',
+          label: '删除'
+        }]
+      }
+      const orgData = row[ORIGINAL_DATA]
+      if (orgData) {
+        let c = 0
+        for (const key in orgData) {
+          if (orgData[key] !== row[key]) {
+            c++
+          }
+        }
+        if (c > 0) {
+          return [{
+            type: 'primary',
+            label: '修改'
+          }]
+        }
+      }
+      return []
     }
   }
 }
 </script>
 
-<style>
-
-  .el-table .delete-row {
-    background-color: #FDE2E2;
-  }
+<style lang="scss">
+  @import '../../styles/element-variables.scss';
 
   .el-table .update-cell {
-    color: #F56C6C;
+    background-color: mix($--color-white, $--color-primary, 40%);
   }
 
-  .el-table .new-row {
-    background-color: #E9E9EB;
+  .el-table .update-cell input{
+    border: 1px solid $--color-primary;
+  }
+
+  .el-table input {
+    background-color: rgba(255,255,255,0.3);
   }
 
 </style>

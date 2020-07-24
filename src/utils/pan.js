@@ -87,6 +87,15 @@ export function mergeObj(target, options) {
   }
 }
 
+export function callValue(value, defaultValue) {
+  if (value === undefined) { return defaultValue }
+  if (typeof value === 'function') {
+    return value()
+  } else {
+    return value
+  }
+}
+
 export function executeConfig(configOption, _this, data) {
   if (configOption === undefined) { return data }
   if (typeof configOption === 'function') {
