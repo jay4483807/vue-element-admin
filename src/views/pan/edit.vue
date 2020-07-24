@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import edit from './components/edit'
+import edit from '@/views/pan/components/edit'
 export default {
   name: 'Edit',
   mixins: [edit]

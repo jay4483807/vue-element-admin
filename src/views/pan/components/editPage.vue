@@ -51,7 +51,7 @@
           <slot v-if="subConfig.slot" name="subBo" :subConfig="subConfig" :index="index" />
           <pr-sub-bo-grid
             v-else
-            :ref="'grid_'+subConfig.boName"
+            :ref="'grid_'+subConfig.prop"
             class="tab-main-container"
             toolbar-class="el-button-group"
             :bo-name="subConfig.boName"
@@ -61,6 +61,8 @@
             :prop="subConfig.prop"
             :auto-load="!!id"
             :selectable="editable"
+            :editable="editable && subConfig.gridEditable"
+            :config-grid-columns="_configSubBoGridColumns(subConfig)"
             :config-grid-actions="configSubBoGridActions(subConfig)"
             :config-toolbar-items="_configSubBoToolbarItems(subConfig)"
             :config-form-items="_configSubBoFormItems(subConfig)"
@@ -169,6 +171,12 @@ export default {
       type: [Function, Array],
       default(subBos) {
         return subBos
+      }
+    },
+    configSubBoGridColumns: {
+      type: Function,
+      default({ boName, prop, items }) {
+        return items
       }
     },
     configSubBoToolbarItems: {
@@ -308,6 +316,11 @@ export default {
   },
   methods: {
     ...mapActions({ getFormToolbar: getFormToolbar }),
+    _configSubBoGridColumns(subConfig) {
+      return items => {
+        return this.configSubBoGridColumns({ ...subConfig, subConfig, items })
+      }
+    },
     configSubBoGridActions(subConfig) {
       return items => {
         if (!this.editable) {
@@ -349,7 +362,7 @@ export default {
         this.form = formData
       })
       for (const subConfig of this.subBos) {
-        const subBoGrid = this.getSubBoGrid(subConfig.boName)
+        const subBoGrid = this.getSubBoGrid(subConfig.prop)
         if (subBoGrid) {
           this.getBoInfo(subConfig.boName).then(subBoInfo => {
             subConfig.queryParams = this.buildSubBoGridQueryParams(this.boInfo, subBoInfo)
@@ -397,7 +410,7 @@ export default {
               this.id = rsp['coustom'][this.idProp]
               const arr = []
               for (const subConfig of this.subBos) {
-                const subBoGrid = this.getSubBoGrid(subConfig.boName)
+                const subBoGrid = this.getSubBoGrid(subConfig.prop)
                 if (subBoGrid) {
                   arr.push(this.getBoInfo(subConfig.boName).then(subBoInfo => {
                     subConfig.queryParams = this.buildSubBoGridQueryParams(this.boInfo, subBoInfo)
@@ -459,19 +472,24 @@ export default {
     buildSaveData() {
       const saveData = this.$refs.form.getFormForSave()
       const subObject = []
-      for (const { boName } of this.subBos) {
-        subObject.push(JSON.stringify({
-          objectName: boName,
-          operType: 'modify',
-          values: [...this.getSubBoGrid(boName).getModifyRows(), ...this.getSubBoGrid(boName).getAddRows()]
-        }))
+      for (const { boName, prop } of this.subBos) {
+        const subBoGrid = this.getSubBoGrid(prop)
+        if (subBoGrid) {
+          subObject.push(JSON.stringify({
+            objectName: boName,
+            operType: 'modify',
+            values: [...subBoGrid.getModifyRows(), ...subBoGrid.getAddRows()]
+          }))
+        }
       }
-      for (const { boName } of this.subBos) {
-        subObject.push(JSON.stringify({
-          objectName: boName,
-          operType: 'delete',
-          values: this.getSubBoGrid(boName).getDeleteRows()
-        }))
+      for (const { boName, prop } of this.subBos) {
+        if (this.getSubBoGrid(prop)) {
+          subObject.push(JSON.stringify({
+            objectName: boName,
+            operType: 'delete',
+            values: this.getSubBoGrid(prop).getDeleteRows()
+          }))
+        }
       }
       return { ...saveData, subObject }
     },
@@ -503,13 +521,13 @@ export default {
       return this.$refs.form.getFormItem(prop)
     },
     getSubBoFormItem(subBoName, prop) {
-      const grid = this.getSubBoGrid(subBoName)
+      const grid = this.getSubBoGrid(prop)
       if (grid) {
         return grid.$refs['form'].getFormItem(prop)
       }
     },
-    getSubBoGrid(subBoName) {
-      let grid = this.$refs['grid_' + subBoName]
+    getSubBoGrid(prop) {
+      let grid = this.$refs['grid_' + prop]
       if (grid instanceof Array) {
         grid = grid[0]
       }

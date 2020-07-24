@@ -17,6 +17,7 @@ export default {
       computeSubBoFormItems: this.computeSubBoFormItems,
       computeSubBoFormData: this.computeSubBoFormData,
       configSubBos: this.configSubBos,
+      configSubBoGridColumns: this.configSubBoGridColumns,
       id: this.id,
       editable: this.editable,
       taskId: this.taskId,
@@ -52,11 +53,11 @@ export default {
     computeSubBoFormData({ boName, form }) {
       return form
     },
-    computeSubToolbarItems() {
-      // TODO
-    },
     configSubBos(subBos) {
       return subBos
+    },
+    configSubBoGridColumns({ boName, prop, items }) {
+      return items
     }
   }
 }
