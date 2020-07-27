@@ -181,25 +181,25 @@ export default {
     },
     configSubBoToolbarItems: {
       type: [Function, Array],
-      default(items) {
+      default({ boName, prop, items }) {
         return items
       }
     },
     configSubBoFormItems: {
       type: Function,
-      default({ boName, items }) {
+      default({ boName, prop, items }) {
         return items
       }
     },
     computeSubBoFormItems: {
       type: Function,
-      default({ boName, items }) {
+      default({ boName, prop, items }) {
         return items
       }
     },
     computeSubBoFormData: {
       type: Function,
-      default({ boName, form }) {
+      default({ boName, prop, form }) {
         return form
       }
     }
@@ -318,7 +318,11 @@ export default {
     ...mapActions({ getFormToolbar: getFormToolbar }),
     _configSubBoGridColumns(subConfig) {
       return items => {
-        return this.configSubBoGridColumns({ ...subConfig, subConfig, items })
+        items = this.configSubBoGridColumns({ ...subConfig, items })
+        if (subConfig.configGridColumns) {
+          items = subConfig.configGridColumns({ ...subConfig, items })
+        }
+        return items
       }
     },
     configSubBoGridActions(subConfig) {
@@ -339,22 +343,22 @@ export default {
             return ![ACTION.CREATE, ACTION.DELETES].includes(item.action)
           })
         }
-        return executeConfig(this.configSubBoToolbarItems, this, items)
+        return this.configSubBoToolbarItems({ ...subConfig, items })
       }
     },
     _configSubBoFormItems(subConfig) {
       return items => {
-        return this.configSubBoFormItems({ boName: subConfig.boName, subConfig, items })
+        return this.configSubBoFormItems({ ...subConfig, items })
       }
     },
     _computeSubBoFormItems(subConfig) {
       return ({ items, form }) => {
-        return this.computeSubBoFormItems({ boName: subConfig.boName, subConfig, items, form })
+        return this.computeSubBoFormItems({ ...subConfig, items, form })
       }
     },
     _computeFormData(subConfig) {
       return form => {
-        return this.computeSubBoFormData({ boName: subConfig.boName, subConfig, form })
+        return this.computeSubBoFormData({ ...subConfig, form })
       }
     },
     fetchData() {

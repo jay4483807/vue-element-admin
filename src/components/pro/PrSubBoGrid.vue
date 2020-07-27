@@ -165,8 +165,16 @@ export default {
     cellClassName({ row, column, rowIndex, columnIndex }) {
       const originalData = row[ORIGINAL_DATA]
       const prop = column.property
+      const className = []
+      const col = this.getColumn(prop) || {}
+      if (col.required && isBlank(row[prop])) {
+        className.push('required-cell')
+      }
       if (isBlank(row[ADD]) && prop && originalData && originalData[prop] !== row[prop]) {
-        return 'update-cell'
+        className.push('update-cell')
+      }
+      if (className.length > 0) {
+        return className.join(' ')
       }
     },
     deleteRow(row) {
@@ -393,10 +401,13 @@ export default {
 
   .el-table .update-cell {
     background-color: mix($--color-white, $--color-primary, 40%);
+    input {
+      border: 1px solid $--color-primary;
+    }
   }
 
-  .el-table .update-cell input{
-    border: 1px solid $--color-primary;
+  .el-table .required-cell input {
+    border: 1px solid $--color-danger;
   }
 
   .el-table input {

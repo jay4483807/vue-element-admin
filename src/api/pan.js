@@ -69,6 +69,10 @@ export const GridColumns = {
   // 动作，一般对应成操作按钮（可选）
   action: String,
   isCondition: Boolean,
+  // 可编辑grid上此列是否可编辑
+  editable: Boolean,
+  // 可编辑grid上是否为必填
+  required: Boolean,
   // 详见UI_TYPE
   uiType: String
 }
@@ -180,6 +184,7 @@ export async function getGridColumns(boName) {
     return data.filter(col => {
       return true
     }).map((col) => {
+      const readonly = transBoolean(col.readonly, undefined)
       return {
         ...props[col.proname] || {},
         // 对应属性名
@@ -194,6 +199,8 @@ export async function getGridColumns(boName) {
         // 动作，一般对应成操作按钮（可选）
         action: transBlank(col.methodname),
         isCondition: transBoolean(col.iscondition),
+        editable: readonly !== undefined ? !readonly : undefined,
+        required: transBoolean(col.nullable),
         uiType: uiTypeMapping[col.uitype] || UI_TYPE.TEXT
       }
     }).sort((c1, c2) => { return (c1.columnNo || '').localeCompare(c2.columnNo || '') })

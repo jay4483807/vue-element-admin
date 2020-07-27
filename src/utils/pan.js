@@ -43,17 +43,27 @@ export function toDateTimeStr(date) {
  * 将configArr中的配置项合并到target中，会根据mergeKey指定的属性匹配配置项
  * @param target
  * @param configArr
- * @param mergeKey
+ * @param mergeKeys
  * @returns {Array}
  */
-export function mergeConfig(target, configArr, mergeKey = 'prop') {
+export function mergeConfig(target, configArr, mergeKeys = ['prop', 'action']) {
   if (target instanceof Array) {
     if (!(configArr instanceof Array)) {
       configArr = [configArr]
     }
+    if (!(mergeKeys instanceof Array)) {
+      mergeKeys = [mergeKeys]
+    }
     for (const configItem of configArr) {
       let found = false
-      if (!isBlank(configItem[mergeKey])) {
+      let mergeKey = ''
+      for (const mk of mergeKeys) {
+        if (!isBlank(configItem[mk])) {
+          mergeKey = mk
+          break
+        }
+      }
+      if (mergeKey) {
         for (let i = 0; i < target.length; i++) {
           const item = target[i]
           if (configItem[mergeKey] === item[mergeKey]) {

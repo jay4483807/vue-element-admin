@@ -158,7 +158,7 @@ export default {
       }
     },
     // 配置子对象编辑页的表单项
-    configSubBoFormItems({ boName, items }) {
+    configSubBoFormItems({ boName, prop, items }) {
       if (boName === 'PurchaseAppItemFro') { // 配置子对象：项目预览
         items = items.filter(item => !['mwskz'].includes(item.prop)) // 税码、工厂的下拉字典表项值不唯一，会报错，先去掉
         mergeConfig(items, [{
@@ -256,6 +256,14 @@ export default {
           return {
             defaultCondition: ` YPURCHASEAPPITEM.PURCHASEAPPLYID='${this.id}'`
           }
+        },
+        // 配置子对象的列
+        configGridColumns: ({ boName, prop, items }) => {
+          return mergeConfig(items, [{
+            prop: 'orderno',
+            required: true, // grid可编辑时，设置订单号为必填
+            editable: true
+          }])
         }
       }, { // 增加一个完全自定义的tab页，可通过edit-page的subBo插槽编写内容
         slot: true,

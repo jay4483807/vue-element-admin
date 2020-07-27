@@ -13,6 +13,9 @@ export default {
     toggleRowSelection(row, selected) {
       this._getGrid().toggleRowSelection(row, selected)
     },
+    getColumn(prop) {
+      return this._getGrid().getColumn(prop)
+    },
     _getGrid() {
       return this.$refs.grid
     }

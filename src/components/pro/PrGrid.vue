@@ -266,6 +266,9 @@ export default {
         return key
       }
     },
+    getColumn(prop) {
+      return this.gridColumns.find(item => item.prop === prop)
+    },
     _toolbarItemClick(item) {
       const event = { item }
       this.$emit('toolbarClick', event)
