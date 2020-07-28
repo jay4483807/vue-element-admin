@@ -9,12 +9,11 @@
       :compute-list-data="computeListData"
       :config-toolbar-items="_configToolbarItems"
       :height="400"
-      :show-tags="true"
+      :show-tags="$attrs.editable"
       :compute-row-tags="computeRowTags"
       v-on="$listeners"
       @toolbarClick="toolbarClick"
       @rowBtnClick="rowBtnClick"
-      @selection-change="selectionChange"
       @row-change="_rowChange"
     />
     <el-dialog :title="formTitle" :visible.sync="showForm" :show-close="true" :append-to-body="true" width="70%">
@@ -118,7 +117,6 @@ export default {
       form: {},
       formEditable: true,
       showForm: false,
-      selectedRows: [],
       showUpload: false,
       uploadUrl: process.env.VUE_APP_BASE_API + '/attachementController.spr?action=upload',
       uploadData: {}
@@ -182,7 +180,7 @@ export default {
         this.addRows.splice(row[ADD], 1)
       } else {
         const index = this.deleteRows.findIndex((r) => {
-          return row[this.idProp] === r[this.idProp]
+          return this._getGrid().getRowKey(row) === this._getGrid().getRowKey(r)
         })
         if (index >= 0) {
           this.deleteRows.splice(index, 1, row)
@@ -207,13 +205,13 @@ export default {
           request({
             url: 'attachementController.spr?action=delete',
             data: {
-              attachementIdList: this.selectedRows.map(row => '\'' + row.attachementId + '\'').join(',') + ','
+              attachementIdList: this.getSelectedRows().map(row => '\'' + row.attachementId + '\'').join(',') + ','
             }
           }).then(() => {
             this.$refs.grid.load()
           })
         }
-        for (const row of this.selectedRows) {
+        for (const row of this.getSelectedRows()) {
           this.deleteRow(row)
         }
       } else if (this.isAttachment && item.action === ACTION.UPLOAD) {
@@ -262,9 +260,6 @@ export default {
         }
       })
     },
-    selectionChange(rows) {
-      this.selectedRows = rows
-    },
     _rowChange({ row, rowIndex, prop }) {
       this.processRowChange(row)
     },
@@ -284,9 +279,6 @@ export default {
           this.modifyRows.push(row)
         }
       }
-    },
-    findRow(row, rowArr) {
-      return rowArr.findIndex((r) => r[this.idProp] === row[this.idProp])
     },
     _configToolbarItems(items) {
       if (this.$attrs.editable) {
@@ -399,11 +391,8 @@ export default {
 <style lang="scss">
   @import '../../styles/element-variables.scss';
 
-  .el-table .update-cell {
-    background-color: mix($--color-white, $--color-primary, 40%);
-    input {
-      border: 1px solid $--color-primary;
-    }
+  .el-table .update-cell input{
+    border: 1px solid $--color-primary;
   }
 
   .el-table .required-cell input {

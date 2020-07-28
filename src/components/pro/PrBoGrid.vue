@@ -2,7 +2,7 @@
   <pr-grid
     ref="grid"
     v-bind="$attrs"
-    :row-key-prop="idProp"
+    :row-key="rowKey"
     :query-params="_queryParams"
     :grid-actions="gridActions"
     :grid-columns="gridColumns"
@@ -28,6 +28,14 @@ export default {
   components: { PrGrid },
   mixins: [boComponent, grid],
   props: {
+    rowKey: {
+      type: [String, Function],
+      default() {
+        return (row) => {
+          return row[this.idProp]
+        }
+      }
+    },
     queryParams: {
       type: [Object, Function],
       default() {

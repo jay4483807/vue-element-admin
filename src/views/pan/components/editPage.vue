@@ -4,7 +4,7 @@
       <el-button
         v-for="(item,index) of computedToolbarItems"
         :key="index"
-        :type="item.btnType"
+        :type="item.btnType || 'primary'"
         :loading="item.loading"
         :disabled="item.disabled"
         @click="_toolbarItemClick(item)"
@@ -54,13 +54,11 @@
             :ref="'grid_'+subConfig.prop"
             class="tab-main-container"
             toolbar-class="el-button-group"
-            :bo-name="subConfig.boName"
-            :query-params="subConfig.queryParams"
             :parent-bo-name="boName"
             :parent-bo-id="id"
-            :prop="subConfig.prop"
+            v-bind="subConfig"
             :auto-load="!!id"
-            :selectable="editable"
+            :selectable="subConfig.selectable === undefined ? editable : subConfig.selectable"
             :editable="editable && subConfig.gridEditable"
             :config-grid-columns="_configSubBoGridColumns(subConfig)"
             :config-grid-actions="configSubBoGridActions(subConfig)"
@@ -88,7 +86,7 @@ import PrSubBoGrid from '@/components/pro/PrSubBoGrid'
 import boComponent from '@/components/pro/mixins/boComponent'
 import { getFormToolbar } from '@/store/action-types'
 import { mapActions } from 'vuex'
-import { executeConfig, isBlank } from '@/utils/pan'
+import { executeCallback, executeConfig, isBlank } from '@/utils/pan'
 import PrTaskHistoryGrid from '@/components/pro/PrTaskHistoryGrid'
 import SmallTitle from '@/components/pro/SmallTitle'
 
@@ -163,7 +161,7 @@ export default {
     },
     computeToolbarItems: {
       type: Function,
-      default(items) {
+      default({ items, form }) {
         return items
       }
     },
@@ -243,7 +241,7 @@ export default {
           item.disabled = !isBlank(this.form.processstate)
         }
       }
-      return this.computeToolbarItems(this.toolbarItems).filter(item => item.hidden !== true)
+      return (this.computeToolbarItems({ items: this.toolbarItems, form: this.form }) || this.toolbarItems).filter(item => item.hidden !== true)
     }
   },
   async created() {
@@ -318,9 +316,9 @@ export default {
     ...mapActions({ getFormToolbar: getFormToolbar }),
     _configSubBoGridColumns(subConfig) {
       return items => {
-        items = this.configSubBoGridColumns({ ...subConfig, items })
+        items = this.configSubBoGridColumns({ ...subConfig, items }) || items
         if (subConfig.configGridColumns) {
-          items = subConfig.configGridColumns({ ...subConfig, items })
+          items = subConfig.configGridColumns({ ...subConfig, items }) || items
         }
         return items
       }
@@ -343,12 +341,12 @@ export default {
             return ![ACTION.CREATE, ACTION.DELETES].includes(item.action)
           })
         }
-        return this.configSubBoToolbarItems({ ...subConfig, items })
+        return this.configSubBoToolbarItems({ ...subConfig, items }) || items
       }
     },
     _configSubBoFormItems(subConfig) {
       return items => {
-        return this.configSubBoFormItems({ ...subConfig, items })
+        return this.configSubBoFormItems({ ...subConfig, items }) || items
       }
     },
     _computeSubBoFormItems(subConfig) {
@@ -394,6 +392,9 @@ export default {
     },
     getForm() {
       return this.$refs.form.getForm()
+    },
+    getFormForSave() {
+      return this.$refs.form.getFormForSave()
     },
     save(item) {
       this.$refs.form.validate(valid => {
@@ -474,7 +475,7 @@ export default {
       }
     },
     buildSaveData() {
-      const saveData = this.$refs.form.getFormForSave()
+      const saveData = this.getFormForSave()
       const subObject = []
       for (const { boName, prop } of this.subBos) {
         const subBoGrid = this.getSubBoGrid(prop)
@@ -498,8 +499,8 @@ export default {
       return { ...saveData, subObject }
     },
     _toolbarItemClick(item) {
-      if (item.clickFunc) {
-        item.clickMethod.apply(this, item)
+      if (item.callback) {
+        executeCallback(item.callback, this, item)
         return
       }
       // 默认点击处理逻辑

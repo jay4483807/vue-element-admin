@@ -1,5 +1,6 @@
 module.exports = {
   title: '锦丰矿业线上审批系统',
+  logo: '/pan_logo.png',
 
   /**
    * @type {boolean} true | false

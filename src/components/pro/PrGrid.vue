@@ -15,12 +15,15 @@
       v-loading="listLoading"
       v-bind="$attrs"
       :data="tableRows"
-      :row-key="getRowKey"
+      :row-key="rowKey"
+      :select-on-indeterminate="$attrs.selectOnIndeterminate === undefined ? multiSelect : $attrs.selectOnIndeterminate"
       header-cell-class-name="table-header"
       fit
       style="width: 100%"
       v-on="$listeners"
       @selection-change="_selectionChange"
+      @select="_rowSelect"
+      @select-all="_selectAll"
     >
       <el-table-column v-if="selectable" type="selection" width="45" :reserve-selection="true" />
       <el-table-column
@@ -86,7 +89,7 @@
 import Pagination from '@/components/Pagination'
 import { queryList } from '@/api/pan' // Secondary package based on el-pagination
 import grid from './mixins/grid'
-import { callValue } from '@/utils/pan'
+import { callValue, executeCallback } from '@/utils/pan'
 
 export default {
   name: 'PrGrid',
@@ -124,6 +127,10 @@ export default {
       type: Boolean,
       default: true
     },
+    multiSelect: {
+      type: Boolean,
+      default: true
+    },
     pageable: {
       type: Boolean,
       default: true
@@ -151,8 +158,8 @@ export default {
       type: Function,
       default: undefined
     },
-    rowKeyProp: {
-      type: String,
+    rowKey: {
+      type: [String, Function],
       default: undefined
     },
     computeListData: {
@@ -244,6 +251,9 @@ export default {
         this.listLoading = false
       }
     },
+    getList() {
+      return this.list
+    },
     clear() {
       this.list = []
       this.total = 0
@@ -255,26 +265,16 @@ export default {
       this.selectedRows = []
       this.showSelectedOnly = false
     },
-    getRowKey(row) {
-      if (this.rowKeyProp) {
-        return row[this.rowKeyProp]
-      } else {
-        let key = ''
-        for (const col of this.gridColumns) {
-          key += (row[col.prop] || '') + '|'
-        }
-        return key
-      }
-    },
     getColumn(prop) {
       return this.gridColumns.find(item => item.prop === prop)
+    },
+    getSelectedRows() {
+      return this.selectedRows || []
     },
     _toolbarItemClick(item) {
       const event = { item }
       this.$emit('toolbarClick', event)
-      if (item.callback) {
-        item.callback.apply(this, [event])
-      }
+      executeCallback(item.callback, this, event)
     },
     _gridAction(item, row, rowIndex) {
       const event = {
@@ -283,22 +283,40 @@ export default {
         rowIndex
       }
       this.$emit('rowBtnClick', event)
-      if (item.callback) {
-        item.callback.apply(this, [event])
-      }
+      executeCallback(item.callback, this, event)
     },
     _dropdownGridAction(action, row, rowIndex) {
       this._gridAction(this.gridActions.find(item => item.action === action) || { action }, row, rowIndex)
     },
     _selectionChange(rows) {
       this.selectedRows = rows
-      this.$emit('selection-change', rows)
+      if (this.multiSelect) { // 单选的情况在_rowSelect触发selection-change事件，以免多次重复触发事件
+        this.$emit('selection-change', rows)
+      }
+    },
+    _rowSelect(selection, row) {
+      if (!this.multiSelect) {
+        const selected = this.findRow(row, selection) >= 0
+        this.$nextTick(() => {
+          this._getGrid().clearSelection()
+          this._getGrid().toggleRowSelection(row, selected)
+          this.$emit('selection-change', selected ? [row] : [])
+        })
+      }
     },
     _computeGridActions(actions, row, rowIndex) {
       return this.computeGridActions({ actions, row, rowIndex })
     },
     _rowChanged(row, rowIndex, prop) {
       this.$emit('row-change', { row, rowIndex, prop })
+    },
+    _selectAll(rows) {
+      if (!this.multiSelect) {
+        this.$nextTick(() => {
+          this._getGrid().clearSelection()
+          this.$emit('selection-change', [])
+        })
+      }
     }
   }
 }

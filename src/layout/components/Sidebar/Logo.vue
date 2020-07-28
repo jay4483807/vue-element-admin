@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import logo from '@/assets/imgs/pan_logo.png'
+import setting from '@/settings'
 export default {
   name: 'SidebarLogo',
   props: {
@@ -25,8 +25,8 @@ export default {
   },
   data() {
     return {
-      title: '锦丰矿业线上审批系统',
-      logo: logo
+      title: setting.title,
+      logo: setting.logo
     }
   }
 }

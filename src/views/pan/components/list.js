@@ -20,6 +20,13 @@ export default {
     }
   },
   methods: {
+    page() {
+      const page = this.$refs.page
+      if (!page) {
+        throw new Error('edit-page组件未挂载完成或是ref值没有设置为page')
+      }
+      return page
+    },
     configQuickSearchItems(items) {
       return items
     },

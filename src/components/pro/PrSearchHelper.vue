@@ -59,7 +59,10 @@ export default {
       type: Boolean,
       default: false
     },
-    value: [String, Number, Array]
+    value: {
+      type: [String, Number, Array],
+      default: undefined
+    }
   },
   data() {
     return {

@@ -79,11 +79,6 @@ service.interceptors.response.use(
         type: res.type || 'error',
         duration: 5 * 1000
       })
-      if (res.type === 'error' && res.message === 'There is a cycle in the hierarchy!') {
-        // TODO 请求接口偶尔会遇到此错误，但重新请求一次有时又不会了，这里自动重新请求一次
-        console.error('重新发起请求', response.config)
-        return service(response.config)
-      }
       if (res.type === 'nologin') {
         MessageBox.confirm('您已退出登录，点击取消留在当前页面，点击确定返回登录页重新登录。', '退出登录', {
           confirmButtonText: '重新登录',
@@ -101,7 +96,7 @@ service.interceptors.response.use(
     }
   },
   error => {
-    console.log('err' + error) // for debug
+    console.error('请求错误：', error) // for debug
     Message({
       message: error.message,
       type: 'error',
@@ -111,4 +106,18 @@ service.interceptors.response.use(
   }
 )
 
-export default service
+export default function(options) {
+  return service(options).catch(err => {
+    console.log('got error', err.name, err.message)
+    const tryTime = options._tryTime || 0
+    if (tryTime <= 5 && (err.message === 'Network Error' || err.message === 'There is a cycle in the hierarchy!')) {
+      // 开发环境调用VPN，经常出现网络错误，这里试着重新发起请求
+      console.log('尝试重新发起请求：' + tryTime, options)
+      return service({ ...options, _tryTime: tryTime + 1 })
+    } else {
+      return new Promise((resolve, reject) => {
+        reject(err)
+      })
+    }
+  })
+}

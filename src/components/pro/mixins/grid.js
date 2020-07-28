@@ -4,6 +4,9 @@ export default {
     async load() {
       return this._getGrid().load()
     },
+    getList() {
+      return this._getGrid().getList()
+    },
     clear() {
       return this._getGrid().clear()
     },
@@ -15,6 +18,16 @@ export default {
     },
     getColumn(prop) {
       return this._getGrid().getColumn(prop)
+    },
+    getSelectedRows() {
+      return this._getGrid().getSelectedRows()
+    },
+    getRowKey(row) {
+      const rowKey = this._getGrid().rowKey
+      if (typeof rowKey === 'function') { return rowKey(row) } else return row[rowKey]
+    },
+    findRow(row, rowArr) {
+      return rowArr.findIndex((r) => this.getRowKey(r) === this.getRowKey(row))
     },
     _getGrid() {
       return this.$refs.grid

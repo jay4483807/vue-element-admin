@@ -263,8 +263,7 @@ export default {
       this.load()
       this.dialogSearchMoreVisible = false
     },
-    _rowBtnClick(event) {
-      const { item, row } = event
+    _rowBtnClick({ item, row }) {
       const action = item.action
       if (item.callback) {
         return

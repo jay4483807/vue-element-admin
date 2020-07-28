@@ -10,6 +10,7 @@ export default {
   created() {
     this.bindProps = {
       configFormItems: this.configFormItems,
+      computeToolbarItems: this.computeToolbarItems,
       computeFormData: this.computeFormData,
       computeFormItems: this.computeFormItems,
       configToolbarItems: this.configToolbarItems,
@@ -18,6 +19,7 @@ export default {
       computeSubBoFormData: this.computeSubBoFormData,
       configSubBos: this.configSubBos,
       configSubBoGridColumns: this.configSubBoGridColumns,
+      configSubBoToolbarItems: this.configSubBoToolbarItems,
       id: this.id,
       editable: this.editable,
       taskId: this.taskId,
@@ -57,6 +59,12 @@ export default {
       return subBos
     },
     configSubBoGridColumns({ boName, prop, items }) {
+      return items
+    },
+    configSubBoToolbarItems({ boName, prop, items }) {
+      return items
+    },
+    computeToolbarItems({ items, form }) {
       return items
     }
   }

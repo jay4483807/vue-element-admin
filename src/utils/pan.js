@@ -106,6 +106,12 @@ export function callValue(value, defaultValue) {
   }
 }
 
+export function executeCallback(callback, _this, ...args) {
+  if (typeof callback === 'function') {
+    return callback.apply(_this, args)
+  }
+}
+
 export function executeConfig(configOption, _this, data) {
   if (configOption === undefined) { return data }
   if (typeof configOption === 'function') {
