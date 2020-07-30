@@ -45,7 +45,7 @@
         <el-tag v-for="(tag,index) of computeRowTags(row,$index)" :key="index" :type="tag.type || 'danger'" size="mini">{{ tag.label }}</el-tag>
       </el-table-column>
       <el-table-column v-if="gridActions.length>0" v-slot="{row,$index}" :width="actionColumnWidth" align="center" label="操作" fixed="right">
-        <el-dropdown v-if="actionType === 'dropdown'" @command="_dropdownGridAction($event,row,$index)">
+        <el-dropdown v-if="actionType === 'dropdown' && gridActions.length > 1" @command="_dropdownGridAction($event,row,$index)">
           <span class="el-dropdown-link">
             更多<i class="el-icon-arrow-down el-icon--right" />
           </span>
@@ -59,6 +59,7 @@
             >{{ act.label }}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
+        <el-button v-else-if="actionType === 'dropdown'" type="text">{{ gridActions[0].label }}</el-button>
         <div v-else class="el-button-group">
           <el-button
             v-for="(act,index) of _computeGridActions(gridActions, row, $index)"
