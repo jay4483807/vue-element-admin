@@ -59,7 +59,7 @@
             >{{ act.label }}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-        <el-button v-else-if="actionType === 'dropdown'" type="text">{{ gridActions[0].label }}</el-button>
+        <el-button v-else-if="actionType === 'dropdown'" type="text" @click="_gridAction(gridActions[0], row, $index)">{{ gridActions[0].label }}</el-button>
         <div v-else class="el-button-group">
           <el-button
             v-for="(act,index) of _computeGridActions(gridActions, row, $index)"
