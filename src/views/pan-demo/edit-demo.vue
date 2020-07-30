@@ -103,6 +103,13 @@ export default {
         rowNo: 2,
         colNo: 2,
         span: 16 // 手动指定宽度，UI_TYPE.TEXT_AREA是24外，其他表单项宽度默认都是8，同一行上的表单项会根据各自的span值均分总宽度
+      }, {
+        prop: 'bukrs',
+        // 表单字段变更时的回调函数，一般字段只有value属性，搜索帮助还会带上所选行的信息rows
+        onChange: ({ value, rows }) => {
+          console.log('公司代码变更：', value, rows)
+          if (value) { this.page().getForm().memo += ', ' + rows[0].BUTXT }
+        }
       }])
       if (!this.page().id) { // 创建页特殊处理
         items = items.filter(item => !['isprint', 'printnum'].includes(item.prop))

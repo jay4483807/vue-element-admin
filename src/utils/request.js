@@ -74,11 +74,13 @@ service.interceptors.response.use(
     console.log('got response', response)
     if (res['panform-json']) { res = res['panform-json'] }
     if (!response.config.ignoreError && (res.success !== undefined && !res.success || res.type !== undefined && res.type !== 'info')) {
-      Message({
-        message: res.message || 'Error',
-        type: res.type || 'error',
-        duration: 5 * 1000
-      })
+      if (res.message !== 'There is a cycle in the hierarchy!') {
+        Message({
+          message: res.message || 'Error',
+          type: res.type || 'error',
+          duration: 5 * 1000
+        })
+      }
       if (res.type === 'nologin') {
         MessageBox.confirm('您已退出登录，点击取消留在当前页面，点击确定返回登录页重新登录。', '退出登录', {
           confirmButtonText: '重新登录',

@@ -249,7 +249,7 @@ export default {
     formConfirm() {
       this.$refs.form.validate(valid => {
         if (valid) {
-          const row = this.$refs.form.getForm()
+          const row = this.$refs.form.getFormatForm()
           this.processRowChange(row)
           this.showForm = false
         } else {

@@ -32,7 +32,7 @@ export default {
   inheritAttrs: false,
   model: {
     prop: 'value',
-    event: 'select'
+    event: 'change'
   },
   props: {
     searchHelpName: {
@@ -102,11 +102,11 @@ export default {
     confirmSelected(rows) {
       this.selectedRows = rows
       this.showDialog = false
-      this.$emit('select', this.getValue(), this.selectedRows)
+      this.$emit('change', this.getValue(), this.selectedRows)
     },
     clear(val) {
       this.selectedRows = []
-      this.$emit('select', this.getValue(), this.selectedRows)
+      this.$emit('change', this.getValue(), this.selectedRows)
     },
     valueEquals(val1, val2) {
       if (val1 === val2) { return true }
@@ -122,7 +122,7 @@ export default {
       if (this.multiSelect) {
         return this.selectedRows.map(row => row[this.valueField])
       } else {
-        return (this.selectedRows && this.selectedRows.length > 0 && this.selectedRows[0]) ? this.selectedRows[0][this.valueField] : undefined
+        return (this.selectedRows && this.selectedRows[0]) ? this.selectedRows[0][this.valueField] : undefined
       }
     }
   }

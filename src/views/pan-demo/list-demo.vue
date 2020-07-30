@@ -88,7 +88,7 @@ export default {
           const list = this.$refs.page.getList() // 获取当前查询到的记录
           alert('导出申请单...，已选中 ' + this.selectedRows.length + ' 条记录，当前页有 ' + list.length + ' 条记录：\n' + item.url)
         }
-      }], 'action')
+      }])
       console.log('配置工具栏按钮:', items)
       return items
     },
@@ -119,7 +119,7 @@ export default {
         callback: ({ item, row, rowIndex }) => {
           alert('点击变更，对象id:' + row[this.$refs.page.idProp])
         }
-      }, 'action')
+      })
       console.log('配置Grid操作:', actions)
       return actions
     },
@@ -128,7 +128,7 @@ export default {
       mergeConfig(items, {
         action: '_printApply',
         label: '导出申请单（' + this.selectedRows.length + '）'
-      }, 'action')
+      })
       return items
     },
     // 动态计算每一行的按钮项

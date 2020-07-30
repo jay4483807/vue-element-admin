@@ -11,18 +11,21 @@
             range-separator="-"
             end-placeholder="结束日期"
             v-bind="item.attrs"
+            v-on="item.listeners"
           />
           <el-date-picker
             v-else-if="item.uiType===UI_TYPE.DATE"
             v-model="form[item.prop]"
             type="date"
             v-bind="item.attrs"
+            v-on="item.listeners"
           />
           <el-date-picker
             v-else-if="item.uiType===UI_TYPE.DATE_TIME"
             v-model="form[item.prop]"
             type="datetime"
             v-bind="item.attrs"
+            v-on="item.listeners"
           />
           <el-date-picker
             v-else-if="item.uiType===UI_TYPE.DATE_TIME_RANGE"
@@ -32,6 +35,7 @@
             range-separator="-"
             end-placeholder="结束日期"
             v-bind="item.attrs"
+            v-on="item.listeners"
           />
           <pr-search-helper
             v-else-if="item.uiType===UI_TYPE.SEARCH_HELP"
@@ -43,12 +47,14 @@
             :query-params="item.queryParams"
             :sort-columns="item.sortColumns"
             v-bind="item.attrs"
+            v-on="item.listeners"
           />
           <el-select
             v-else-if="item.uiType===UI_TYPE.SELECT"
             v-model="form[item.prop]"
             clearable
             v-bind="item.attrs"
+            v-on="item.listeners"
           >
             <el-option v-for="opt of item.selectOptions" :key="opt.value" :label="opt.text" :value="opt.value" />
           </el-select>
@@ -57,6 +63,7 @@
             v-model="form[item.prop]"
             :clearable="true"
             v-bind="item.attrs"
+            v-on="item.listeners"
           />
         </el-form-item>
       </el-col>
@@ -130,9 +137,20 @@ export default {
           disabled: item.editable === undefined ? !this.editable : !item.editable,
           ref: 'item_' + item.prop
         }
+        const listeners = {}
+        if (item.onChange) {
+          listeners.change = (value, ...args) => {
+            const event = { value }
+            if (item.uiType === UI_TYPE.SEARCH_HELP) {
+              event.rows = args[0]
+            }
+            item.onChange(event)
+          }
+        }
         return {
           ...item,
-          attrs
+          attrs,
+          listeners
         }
       })
     },
@@ -262,6 +280,9 @@ export default {
   },
   methods: {
     getForm() {
+      return this.form
+    },
+    getFormatForm() {
       return this.formatFormData(this.form)
     },
     getFormForSave() {
